@@ -15,7 +15,7 @@ export default function TripsDashboardView({
   stats,
   activities
 }) {
-  if (activeNav !== 'Current Trips') {
+  if (activeNav !== 'Current Trips' && activeNav !== 'Поточні подорожі') {
     return <PlaceholderView title={activeNav} icon={<Luggage size={40} color="#ba6e51" />} />
   }
 
