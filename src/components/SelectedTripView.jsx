@@ -43,12 +43,13 @@ export default function SelectedTripView({
   members,
   membersLoading,
   getInitials,
-  currentUserRole,       // Передаємо роль поточного користувача ('OWNER', 'EDITOR', 'MEMBER')
-  currentUserId,         // Передаємо ID поточного користувача
-  handleDeleteTrip,      // Функція видалення подорожі (для OWNER)
-  handleLeaveTrip,       // Функція виходу з подорожі (для MEMBER та EDITOR)
+  currentUserRole,        // Передаємо роль поточного користувача ('OWNER', 'EDITOR', 'MEMBER')
+  currentUserId,          // Передаємо ID поточного користувача
+  handleDeleteTrip,       // Функція видалення подорожі (для OWNER)
+  handleLeaveTrip,        // Функція виходу з подорожі (для MEMBER та EDITOR)
   handleUpdateMemberRole,// Функція зміни ролі (для OWNER)
-  handleRemoveMember     // Функція видалення учасника (для OWNER)
+  handleRemoveMember,     // Функція видалення учасника (для OWNER)
+  handleAssignMember      // Функція призначення учасника на пункт підготовки
 }) {
   // Локальний стейт для меню дій з учасником та модалки зміни ролі
   const [activeMemberMenu, setActiveMemberMenu] = useState(null)
@@ -56,13 +57,12 @@ export default function SelectedTripView({
   const [selectedRole, setSelectedRole] = useState('MEMBER')
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false)
 
+  // Стейт для модалки призначення юзера на підготовку
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
+  const [targetPrepForAssign, setTargetPrepForAssign] = useState(null)
+
   // Нормалізуємо роль (якщо undefined, буде 'MEMBER')
   const normalizedRole = currentUserRole ? String(currentUserRole).toUpperCase().trim() : 'MEMBER'
-
-  console.log('currentUserRole:', currentUserRole)
-console.log('normalizedRole:', normalizedRole)
-console.log('currentUserId:', currentUserId)
-console.log('members:', members)
   
   // Дозволяємо редагування ТІЛЬКИ якщо це OWNER або EDITOR
   const canEdit = normalizedRole === 'OWNER' || normalizedRole === 'EDITOR'
@@ -215,6 +215,7 @@ console.log('members:', members)
               {preparations.map(item => {
                 const isExpanded = expandedPrepId === item.id
                 const isCompleted = item.completed || false
+                const assignedMember = members.find(m => m.userId === item.assignedMemberId)
 
                 return (
                   <div key={item.id} style={styles.prepCard}>
@@ -244,6 +245,11 @@ console.log('members:', members)
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {assignedMember && (
+                          <span style={{ fontSize: '12px', backgroundColor: '#f3ece7', color: '#ba6e51', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
+                            {assignedMember.fullName}
+                          </span>
+                        )}
                         {item.deadline && (
                           <span style={styles.prepDeadline}>
                             <Calendar size={13} style={{ marginRight: '4px' }} />
@@ -283,13 +289,28 @@ console.log('members:', members)
                           </div>
                         )}
 
+                        {assignedMember && (
+                          <div style={styles.prepDetailRow}>
+                            <span style={styles.prepDetailLabel}>Відповідальний:</span>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#2b2b2b' }}>
+                              {assignedMember.fullName}
+                            </span>
+                          </div>
+                        )}
+
                         {/* Кнопки Призначити / Видалити / Редагувати доступні тільки для OWNER і EDITOR */}
                         {canEdit && (
                           <div style={styles.prepActionsRow}>
                             <button style={styles.prepActionBtn}>
                               <Edit2 size={14} /> Редагувати
                             </button>
-                            <button style={styles.prepActionBtn}>
+                            <button 
+                              onClick={() => {
+                                setTargetPrepForAssign(item)
+                                setIsAssignModalOpen(true)
+                              }}
+                              style={styles.prepActionBtn}
+                            >
                               <UserPlus size={14} /> Призначити
                             </button>
                             <button 
@@ -488,6 +509,72 @@ console.log('members:', members)
                 style={{ ...styles.primaryBtn, padding: '8px 16px' }}
               >
                 Зберегти
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* МОДАЛЬНЕ ВІКНО ПРИЗНАЧЕННЯ УЧАСНИКА */}
+      {isAssignModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 100
+        }}>
+          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '12px', minWidth: '340px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#2b2b2b' }}>
+              Призначити учасника
+            </h3>
+            <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px 0' }}>
+              Оберіть учасника для пункту: <b>{targetPrepForAssign?.title}</b>
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', marginBottom: '20px' }}>
+              {members.map(m => (
+                <button
+                  key={m.userId}
+                  onClick={() => {
+                    if (handleAssignMember && targetPrepForAssign) {
+                      handleAssignMember(targetPrepForAssign.id, m.userId)
+                    }
+                    setIsAssignModalOpen(false)
+                    setTargetPrepForAssign(null)
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e5e5',
+                    background: '#f9f9f9',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#2b2b2b'
+                  }}
+                >
+                  <div style={{ ...styles.memberAvatar, width: '28px', height: '28px', fontSize: '12px' }}>
+                    {getInitials(m.fullName)}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: '600' }}>{m.fullName}</span>
+                    <span style={{ fontSize: '11px', color: '#666' }}>{m.role}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => {
+                  setIsAssignModalOpen(false)
+                  setTargetPrepForAssign(null)
+                }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ccc', background: 'none', cursor: 'pointer' }}
+              >
+                Скасувати
               </button>
             </div>
           </div>
