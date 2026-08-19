@@ -47,7 +47,7 @@ export default function SelectedTripView({
   currentUserId,          // Передаємо ID поточного користувача
   handleDeleteTrip,       // Функція видалення подорожі (для OWNER)
   handleLeaveTrip,        // Функція виходу з подорожі (для MEMBER та EDITOR)
-  handleUpdateMemberRole,// Функція зміни ролі (для OWNER)
+  handleUpdateMemberRole, // Функція зміни ролі (для OWNER)
   handleRemoveMember,     // Функція видалення учасника (для OWNER)
   handleAssignMember      // Функція призначення учасника на пункт підготовки
 }) {
@@ -246,8 +246,8 @@ export default function SelectedTripView({
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         {assignedMember && (
-                          <span style={{ fontSize: '12px', backgroundColor: '#f3ece7', color: '#ba6e51', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
-                            {assignedMember.fullName}
+                          <span style={{ fontSize: '13px', color: '#ba6e51', fontWeight: '500' }}>
+                            відповідальний: {assignedMember.fullName}
                           </span>
                         )}
                         {item.deadline && (
