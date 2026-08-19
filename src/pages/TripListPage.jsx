@@ -33,7 +33,6 @@ export default function TripListPage() {
   const [membersLoading, setMembersLoading] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
 
-  // ↓ ЗМІНА 1: додали окремий стейт для ролі
   const [currentUserRole, setCurrentUserRole] = useState('MEMBER')
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -137,7 +136,6 @@ export default function TripListPage() {
     if (selectedTrip) fetchMembers()
   }, [selectedTrip])
 
-  // ↓ ЗМІНА 2: fetchMembers тепер одразу визначає роль
   const fetchMembers = async () => {
     if (!selectedTrip) return
     setMembersLoading(true)
@@ -158,16 +156,12 @@ export default function TripListPage() {
     }
   }
 
-  // ↓ ЗМІНА 3: useEffect перераховує роль коли user або members змінюються
-  // (на випадок якщо user завантажився пізніше ніж members)
   useEffect(() => {
     if (user?.id && members.length > 0) {
       const me = members.find(m => m.userId === user.id)
       setCurrentUserRole(me ? me.role : 'MEMBER')
     }
   }, [user, members])
-
-  // ВИДАЛЕНО: старі два рядки з currentMember і currentUserRole
 
   const handleDeleteTrip = async () => {
     if (!selectedTrip || !window.confirm('Ви дійсно бажаєте видалити цю подорож?')) return
@@ -215,6 +209,20 @@ export default function TripListPage() {
     } catch (err) {
       console.error('Помилка видалення учасника:', err)
       alert('Не вдалося вилучити учасника')
+    }
+  }
+
+  // Призначення відповідального за пункт підготовки
+  const handleAssignMember = async (prepPointId, targetUserId) => {
+    if (!selectedTrip) return
+    try {
+      const res = await api.patch(
+        `/api/trips/${selectedTrip.id}/preparations/${prepPointId}/assign/${targetUserId}`
+      )
+      setPreparations(prev => prev.map(p => p.id === prepPointId ? res.data : p))
+    } catch (err) {
+      console.error('Помилка призначення відповідального:', err)
+      alert('Не вдалося призначити відповідального')
     }
   }
 
@@ -441,6 +449,7 @@ export default function TripListPage() {
             handleLeaveTrip={handleLeaveTrip}
             handleUpdateMemberRole={handleUpdateMemberRole}
             handleRemoveMember={handleRemoveMember}
+            handleAssignMember={handleAssignMember}
           />
         ) : loading ? (
           <div style={styles.loaderContainer}>
