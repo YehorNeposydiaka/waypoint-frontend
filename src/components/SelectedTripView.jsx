@@ -43,63 +43,60 @@ export default function SelectedTripView({
   members,
   membersLoading,
   getInitials,
-  currentUserRole,        // Передаємо роль поточного користувача ('OWNER', 'EDITOR', 'MEMBER')
-  currentUserId,          // Передаємо ID поточного користувача
-  handleDeleteTrip,       // Функція видалення подорожі (для OWNER)
-  handleLeaveTrip,        // Функція виходу з подорожі (для MEMBER та EDITOR)
-  handleUpdateMemberRole, // Функція зміни ролі (для OWNER)
-  handleRemoveMember,     // Функція видалення учасника (для OWNER)
-  handleAssignMember      // Функція призначення учасника на пункт підготовки
+  currentUserRole,
+  currentUserId,
+  handleDeleteTrip,
+  handleLeaveTrip,
+  handleUpdateMemberRole,
+  handleRemoveMember,
+  handleAssignMember
 }) {
-  // Локальний стейт для меню дій з учасником та модалки зміни ролі
   const [activeMemberMenu, setActiveMemberMenu] = useState(null)
   const [targetMember, setTargetMember] = useState(null)
   const [selectedRole, setSelectedRole] = useState('MEMBER')
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false)
 
-  // Стейт для модалки призначення юзера на підготовку
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [targetPrepForAssign, setTargetPrepForAssign] = useState(null)
 
-  // Нормалізуємо роль (якщо undefined, буде 'MEMBER')
   const normalizedRole = currentUserRole ? String(currentUserRole).toUpperCase().trim() : 'MEMBER'
-  
-  // Дозволяємо редагування ТІЛЬКИ якщо це OWNER або EDITOR
   const canEdit = normalizedRole === 'OWNER' || normalizedRole === 'EDITOR'
 
-  const onConfirmRoleChange = () => {
+  // Підтвердження зміни ролі
+  const onConfirmRoleChange = async () => {
     if (targetMember && handleUpdateMemberRole) {
-      handleUpdateMemberRole(targetMember.userId, selectedRole)
+      await handleUpdateMemberRole(targetMember.userId, selectedRole)
     }
     setIsRoleModalOpen(false)
     setTargetMember(null)
     setActiveMemberMenu(null)
   }
 
+  // Підтвердження призначення учасника на пункт
+  const onConfirmAssign = async (userId) => {
+    if (targetPrepForAssign && handleAssignMember) {
+      await handleAssignMember(targetPrepForAssign.id, userId)
+    }
+    setIsAssignModalOpen(false)
+    setTargetPrepForAssign(null)
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* ВЕРХНЯ ПАНЕЛЬ НАВІГАЦІЇ ТА ДІЙ */}
+      {/* ВЕРХНЯ ПАНЕЛЬ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={() => setSelectedTrip(null)} style={styles.backBtn}>
           <ArrowLeft size={18} /> Back to trips
         </button>
 
-        {/* Справа вгорі: Червона кнопка залежно від ролі */}
         {normalizedRole === 'OWNER' ? (
           <button 
             onClick={handleDeleteTrip} 
             style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              backgroundColor: '#d32f2f', 
-              color: '#fff', 
-              border: 'none', 
-              padding: '8px 16px', 
-              borderRadius: '8px', 
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '14px'
+              display: 'flex', alignItems: 'center', gap: '6px', 
+              backgroundColor: '#d32f2f', color: '#fff', border: 'none', 
+              padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+              fontWeight: '600', fontSize: '14px'
             }}
           >
             <Trash2 size={16} /> Видалити подорож
@@ -108,17 +105,10 @@ export default function SelectedTripView({
           <button 
             onClick={handleLeaveTrip} 
             style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              backgroundColor: '#d32f2f', 
-              color: '#fff', 
-              border: 'none', 
-              padding: '8px 16px', 
-              borderRadius: '8px', 
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '14px'
+              display: 'flex', alignItems: 'center', gap: '6px', 
+              backgroundColor: '#d32f2f', color: '#fff', border: 'none', 
+              padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
+              fontWeight: '600', fontSize: '14px'
             }}
           >
             <LogOut size={16} /> Покинути подорож
@@ -143,7 +133,7 @@ export default function SelectedTripView({
         </div>
       </div>
 
-      {/* ВКЛАДКИ ПОЇЗДКИ */}
+      {/* ВКЛАДКИ */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
         <div style={styles.segmentedControl}>
           {[
@@ -191,7 +181,6 @@ export default function SelectedTripView({
               </button>
             </div>
 
-            {/* Кнопка Додати доступна тільки для OWNER і EDITOR */}
             {canEdit && (
               <button onClick={() => setIsNewPrepOpen(true)} style={styles.primaryBtn}>
                 <Plus size={16} /> Додати
@@ -207,7 +196,7 @@ export default function SelectedTripView({
             <div style={styles.emptyTripsBox}>
               <Luggage size={36} color="#ba6e51" />
               <p style={{ margin: '12px 0 0 0', fontWeight: '500', color: '#666' }}>
-                {canEdit ? 'Натисніть додати, аби створити підготовчий пункт' : 'Немає пунктів підготовки'}
+                {canEdit ? 'Натисніть додати, аби створити пункт підготовки' : 'Немає пунктів підготовки'}
               </p>
             </div>
           ) : (
@@ -215,7 +204,13 @@ export default function SelectedTripView({
               {preparations.map(item => {
                 const isExpanded = expandedPrepId === item.id
                 const isCompleted = item.completed || false
-                const assignedMember = members.find(m => m.userId === item.assignedMemberId)
+                
+                // ТУТ ТОЧНЕ ПОРІВНЯННЯ ПО UUID
+                const assignedMember = members.find(m => 
+                  m.userId != null && 
+                  item.assignedMemberId != null && 
+                  String(m.userId).toLowerCase() === String(item.assignedMemberId).toLowerCase()
+                )
 
                 return (
                   <div key={item.id} style={styles.prepCard}>
@@ -246,8 +241,8 @@ export default function SelectedTripView({
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         {assignedMember && (
-                          <span style={{ fontSize: '13px', color: '#ba6e51', fontWeight: '500' }}>
-                            відповідальний: {assignedMember.fullName}
+                          <span style={{ fontSize: '13px', color: '#ba6e51', fontWeight: '600' }}>
+                            👤 {assignedMember.fullName}
                           </span>
                         )}
                         {item.deadline && (
@@ -293,17 +288,13 @@ export default function SelectedTripView({
                           <div style={styles.prepDetailRow}>
                             <span style={styles.prepDetailLabel}>Відповідальний:</span>
                             <span style={{ fontSize: '13px', fontWeight: '600', color: '#2b2b2b' }}>
-                              {assignedMember.fullName}
+                              {assignedMember.fullName} ({assignedMember.email})
                             </span>
                           </div>
                         )}
 
-                        {/* Кнопки Призначити / Видалити / Редагувати доступні тільки для OWNER і EDITOR */}
                         {canEdit && (
                           <div style={styles.prepActionsRow}>
-                            <button style={styles.prepActionBtn}>
-                              <Edit2 size={14} /> Редагувати
-                            </button>
                             <button 
                               onClick={() => {
                                 setTargetPrepForAssign(item)
@@ -311,7 +302,7 @@ export default function SelectedTripView({
                               }}
                               style={styles.prepActionBtn}
                             >
-                              <UserPlus size={14} /> Призначити
+                              <UserPlus size={14} /> {assignedMember ? 'Змінити відповідального' : 'Призначити'}
                             </button>
                             <button 
                               onClick={(e) => handleDeletePrepPoint(item.id, e)} 
@@ -333,7 +324,7 @@ export default function SelectedTripView({
 
       {tripTab === 'Trip' && <PlaceholderView title="Деталі поїздки та маршрут" icon={<MapPin size={40} color="#ba6e51" />} />}
       {tripTab === 'Stats' && <PlaceholderView title="Статистика та витрати" icon={<BarChart3 size={40} color="#ba6e51" />} />}
-      
+
       {/* ВКЛАДКА: УЧАСНИКИ */}
       {tripTab === 'Members' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
@@ -350,7 +341,6 @@ export default function SelectedTripView({
                 <button 
                   onClick={() => copyInviteCode(selectedTrip.inviteCode)} 
                   style={styles.primaryBtn}
-                  title="Скопіювати код"
                 >
                   {copiedCode ? <Check size={16} /> : <Copy size={16} />}
                   {copiedCode ? 'Скопійовано' : 'Копіювати'}
@@ -368,10 +358,6 @@ export default function SelectedTripView({
           {membersLoading ? (
             <div style={styles.loaderContainer}>
               <Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} color="#ba6e51" />
-            </div>
-          ) : members.length === 0 ? (
-            <div style={styles.emptyTripsBox}>
-              <p style={{ color: '#666', margin: 0 }}>Немає учасників</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -396,30 +382,21 @@ export default function SelectedTripView({
                       Доданий: {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}
                     </span>
 
-                    {/* Показ 3 крапок ТІЛЬКИ для OWNER і не для самого себе */}
-                    {normalizedRole === 'OWNER' && m.userId !== currentUserId && (
+                    {normalizedRole === 'OWNER' && String(m.userId) !== String(currentUserId) && (
                       <div style={{ position: 'relative' }}>
                         <button 
                           onClick={() => setActiveMemberMenu(activeMemberMenu === m.userId ? null : m.userId)}
                           style={styles.moreActionsBtn} 
-                          title="Опції"
                         >
                           <MoreHorizontal size={18} color="#666" />
                         </button>
 
-                        {/* Контекстне меню */}
                         {activeMemberMenu === m.userId && (
                           <div style={{
-                            position: 'absolute',
-                            right: 0,
-                            top: '32px',
-                            backgroundColor: '#fff',
-                            border: '1px solid #e5e5e5',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                            zIndex: 20,
-                            minWidth: '150px',
-                            overflow: 'hidden'
+                            position: 'absolute', right: 0, top: '32px',
+                            backgroundColor: '#fff', border: '1px solid #e5e5e5',
+                            borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            zIndex: 20, minWidth: '150px', overflow: 'hidden'
                           }}>
                             <button
                               onClick={() => {
@@ -428,17 +405,10 @@ export default function SelectedTripView({
                                 setIsRoleModalOpen(true)
                               }}
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                width: '100%',
-                                padding: '10px 12px',
-                                border: 'none',
-                                background: 'none',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                                fontSize: '13px',
-                                color: '#2b2b2b'
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                width: '100%', padding: '10px 12px', border: 'none',
+                                background: 'none', textAlign: 'left', cursor: 'pointer',
+                                fontSize: '13px', color: '#2b2b2b'
                               }}
                             >
                               <UserCog size={15} /> Змінити роль
@@ -449,18 +419,10 @@ export default function SelectedTripView({
                                 setActiveMemberMenu(null)
                               }}
                               style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                width: '100%',
-                                padding: '10px 12px',
-                                border: 'none',
-                                background: 'none',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                                fontSize: '13px',
-                                color: '#d32f2f',
-                                borderTop: '1px solid #f0f0f0'
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                width: '100%', padding: '10px 12px', border: 'none',
+                                background: 'none', textAlign: 'left', cursor: 'pointer',
+                                fontSize: '13px', color: '#d32f2f', borderTop: '1px solid #f0f0f0'
                               }}
                             >
                               <Trash2 size={15} /> Видалити
@@ -477,14 +439,14 @@ export default function SelectedTripView({
         </div>
       )}
 
-      {/* МОДАЛЬНЕ ВІКНО ЗМІНИ РОЛІ */}
+      {/* МОДАЛКА ЗМІНИ РОЛІ */}
       {isRoleModalOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 100
         }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '12px', minWidth: '320px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '12px', minWidth: '320px' }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#2b2b2b' }}>
               Змінити роль для {targetMember?.fullName}
             </h3>
@@ -515,16 +477,16 @@ export default function SelectedTripView({
         </div>
       )}
 
-      {/* МОДАЛЬНЕ ВІКНО ПРИЗНАЧЕННЯ УЧАСНИКА */}
+      {/* МОДАЛКА ПРИЗНАЧЕННЯ УЧАСНИКА */}
       {isAssignModalOpen && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 100
         }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '12px', minWidth: '340px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '12px', minWidth: '340px' }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#2b2b2b' }}>
-              Призначити учасника
+              Призначити відповідального
             </h3>
             <p style={{ fontSize: '13px', color: '#666', margin: '0 0 16px 0' }}>
               Оберіть учасника для пункту: <b>{targetPrepForAssign?.title}</b>
@@ -534,25 +496,12 @@ export default function SelectedTripView({
               {members.map(m => (
                 <button
                   key={m.userId}
-                  onClick={() => {
-                    if (handleAssignMember && targetPrepForAssign) {
-                      handleAssignMember(targetPrepForAssign.id, m.userId)
-                    }
-                    setIsAssignModalOpen(false)
-                    setTargetPrepForAssign(null)
-                  }}
+                  onClick={() => onConfirmAssign(m.userId)}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid #e5e5e5',
-                    background: '#f9f9f9',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#2b2b2b'
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '10px 12px', borderRadius: '8px',
+                    border: '1px solid #e5e5e5', background: '#f9f9f9',
+                    textAlign: 'left', cursor: 'pointer', fontSize: '14px'
                   }}
                 >
                   <div style={{ ...styles.memberAvatar, width: '28px', height: '28px', fontSize: '12px' }}>
