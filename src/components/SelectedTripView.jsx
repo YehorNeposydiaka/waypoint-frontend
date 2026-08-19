@@ -407,7 +407,7 @@ export default function SelectedTripView({
                           <MoreHorizontal size={18} color="#666" />
                         </button>
 
-                        {/* Контекстне меню зі 2 пунктами */}
+                        {/* Контекстне меню */}
                         {activeMemberMenu === m.userId && (
                           <div style={{
                             position: 'absolute',
