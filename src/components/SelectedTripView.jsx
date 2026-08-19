@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   ArrowLeft,
   Plus,
@@ -62,36 +62,112 @@ export default function SelectedTripView({
   const normalizedRole = currentUserRole ? String(currentUserRole).toUpperCase().trim() : 'MEMBER'
   const canEdit = normalizedRole === 'OWNER' || normalizedRole === 'EDITOR'
 
+  // Лог при рендері або зміні вибраної подорожі / ролі
+  useEffect(() => {
+    console.log('[SelectedTripView] Рендер компонента:', {
+      tripId: selectedTrip?.id,
+      title: selectedTrip?.title,
+      currentUserId,
+      currentUserRole,
+      normalizedRole,
+      canEdit,
+      preparationsCount: preparations?.length || 0,
+      membersCount: members?.length || 0
+    })
+  }, [selectedTrip, currentUserRole, preparations, members])
+
   // Підтвердження зміни ролі
   const onConfirmRoleChange = async () => {
-    if (targetMember && handleUpdateMemberRole) {
-      await handleUpdateMemberRole(targetMember.userId, selectedRole)
+    console.log('[DEBUG] [onConfirmRoleChange] Спроба оновлення ролі:', {
+      targetUserId: targetMember?.userId,
+      targetMemberName: targetMember?.fullName,
+      newRole: selectedRole,
+      tripId: selectedTrip?.id
+    })
+
+    try {
+      if (targetMember && handleUpdateMemberRole) {
+        await handleUpdateMemberRole(targetMember.userId, selectedRole)
+        console.log('[SUCCESS] [onConfirmRoleChange] Роль успішно змінено')
+      } else {
+        console.warn('[WARN] [onConfirmRoleChange] Відсутній targetMember або handleUpdateMemberRole')
+      }
+    } catch (error) {
+      console.error('[ERROR] [onConfirmRoleChange] Помилка під час зміни ролі:', error)
+    } finally {
+      setIsRoleModalOpen(false)
+      setTargetMember(null)
+      setActiveMemberMenu(null)
     }
-    setIsRoleModalOpen(false)
-    setTargetMember(null)
-    setActiveMemberMenu(null)
   }
 
   // Підтвердження призначення учасника на пункт
   const onConfirmAssign = async (userId) => {
-    if (targetPrepForAssign && handleAssignMember) {
-      await handleAssignMember(targetPrepForAssign.id, userId)
+    console.log('[DEBUG] [onConfirmAssign] Призначення відповідального:', {
+      prepPointId: targetPrepForAssign?.id,
+      prepTitle: targetPrepForAssign?.title,
+      assignedUserId: userId
+    })
+
+    try {
+      if (targetPrepForAssign && handleAssignMember) {
+        await handleAssignMember(targetPrepForAssign.id, userId)
+        console.log('[SUCCESS] [onConfirmAssign] Відповідального успішно призначено')
+      } else {
+        console.warn('[WARN] [onConfirmAssign] Відсутній targetPrepForAssign або handleAssignMember')
+      }
+    } catch (error) {
+      console.error('[ERROR] [onConfirmAssign] Помилка призначення відповідального:', error)
+    } finally {
+      setIsAssignModalOpen(false)
+      setTargetPrepForAssign(null)
     }
-    setIsAssignModalOpen(false)
-    setTargetPrepForAssign(null)
+  }
+
+  // Обгортки для подій з логуванням
+  const onToggleComplete = (prepId, e) => {
+    console.log('[DEBUG] Перемикання статусу виконання пункту:', { prepId })
+    handleTogglePrepComplete(prepId, e)
+  }
+
+  const onDeletePrep = (prepId, e) => {
+    console.log('[DEBUG] Видалення пункту підготовки:', { prepId })
+    handleDeletePrepPoint(prepId, e)
+  }
+
+  const onRemoveMemberClick = (userId) => {
+    console.log('[DEBUG] Вилучення учасника з подорожі:', { userId, tripId: selectedTrip?.id })
+    if (handleRemoveMember) {
+      handleRemoveMember(userId)
+    }
+    setActiveMemberMenu(null)
+  }
+
+  const onCopyCodeClick = (code) => {
+    console.log('[DEBUG] Копіювання інвайт-коду:', code)
+    copyInviteCode(code)
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* ВЕРХНЯ ПАНЕЛЬ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <button onClick={() => setSelectedTrip(null)} style={styles.backBtn}>
+        <button 
+          onClick={() => {
+            console.log('[DEBUG] Повернення до списку подорожей')
+            setSelectedTrip(null)
+          }} 
+          style={styles.backBtn}
+        >
           <ArrowLeft size={18} /> Back to trips
         </button>
 
         {normalizedRole === 'OWNER' ? (
           <button 
-            onClick={handleDeleteTrip} 
+            onClick={() => {
+              console.log('[DEBUG] Натиснуто видалення подорожі:', selectedTrip?.id)
+              handleDeleteTrip()
+            }} 
             style={{ 
               display: 'flex', alignItems: 'center', gap: '6px', 
               backgroundColor: '#d32f2f', color: '#fff', border: 'none', 
@@ -103,7 +179,10 @@ export default function SelectedTripView({
           </button>
         ) : (
           <button 
-            onClick={handleLeaveTrip} 
+            onClick={() => {
+              console.log('[DEBUG] Натиснуто покидання подорожі:', selectedTrip?.id)
+              handleLeaveTrip()
+            }} 
             style={{ 
               display: 'flex', alignItems: 'center', gap: '6px', 
               backgroundColor: '#d32f2f', color: '#fff', border: 'none', 
@@ -144,7 +223,10 @@ export default function SelectedTripView({
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setTripTab(tab.id)}
+              onClick={() => {
+                console.log('[DEBUG] Переключено вкладку на:', tab.id)
+                setTripTab(tab.id)
+              }}
               style={{
                 ...styles.segmentedBtn,
                 ...(tripTab === tab.id ? styles.segmentedBtnActive : {})
@@ -162,7 +244,10 @@ export default function SelectedTripView({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={styles.segmentedControlSmall}>
               <button
-                onClick={() => setPrepFilter('All')}
+                onClick={() => {
+                  console.log('[DEBUG] Фільтр пунктів: Всі')
+                  setPrepFilter('All')
+                }}
                 style={{
                   ...styles.segmentedBtnSmall,
                   ...(prepFilter === 'All' ? styles.segmentedBtnActiveSmall : {})
@@ -171,7 +256,10 @@ export default function SelectedTripView({
                 Всі
               </button>
               <button
-                onClick={() => setPrepFilter('Mine')}
+                onClick={() => {
+                  console.log('[DEBUG] Фільтр пунктів: Мої')
+                  setPrepFilter('Mine')
+                }}
                 style={{
                   ...styles.segmentedBtnSmall,
                   ...(prepFilter === 'Mine' ? styles.segmentedBtnActiveSmall : {})
@@ -182,7 +270,13 @@ export default function SelectedTripView({
             </div>
 
             {canEdit && (
-              <button onClick={() => setIsNewPrepOpen(true)} style={styles.primaryBtn}>
+              <button 
+                onClick={() => {
+                  console.log('[DEBUG] Відкриття модалки створення нового пункту підготовки')
+                  setIsNewPrepOpen(true)
+                }} 
+                style={styles.primaryBtn}
+              >
                 <Plus size={16} /> Додати
               </button>
             )}
@@ -205,7 +299,6 @@ export default function SelectedTripView({
                 const isExpanded = expandedPrepId === item.id
                 const isCompleted = item.completed || false
                 
-                // ТУТ ТОЧНЕ ПОРІВНЯННЯ ПО UUID
                 const assignedMember = members.find(m => 
                   m.userId != null && 
                   item.assignedMemberId != null && 
@@ -216,11 +309,15 @@ export default function SelectedTripView({
                   <div key={item.id} style={styles.prepCard}>
                     <div 
                       style={styles.prepCardHeader}
-                      onClick={() => setExpandedPrepId(isExpanded ? null : item.id)}
+                      onClick={() => {
+                        const nextState = isExpanded ? null : item.id
+                        console.log('[DEBUG] Розгортання пункту:', { prepId: item.id, expanded: !!nextState })
+                        setExpandedPrepId(nextState)
+                      }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         <button 
-                          onClick={(e) => handleTogglePrepComplete(item.id, e)} 
+                          onClick={(e) => onToggleComplete(item.id, e)} 
                           style={styles.checkboxBtn}
                         >
                           {isCompleted ? (
@@ -297,6 +394,7 @@ export default function SelectedTripView({
                           <div style={styles.prepActionsRow}>
                             <button 
                               onClick={() => {
+                                console.log('[DEBUG] Відкриття модалки призначення відповідального для пункту:', item)
                                 setTargetPrepForAssign(item)
                                 setIsAssignModalOpen(true)
                               }}
@@ -305,7 +403,7 @@ export default function SelectedTripView({
                               <UserPlus size={14} /> {assignedMember ? 'Змінити відповідального' : 'Призначити'}
                             </button>
                             <button 
-                              onClick={(e) => handleDeletePrepPoint(item.id, e)} 
+                              onClick={(e) => onDeletePrep(item.id, e)} 
                               style={{ ...styles.prepActionBtn, color: '#d32f2f' }}
                             >
                               <Trash2 size={14} /> Видалити
@@ -339,7 +437,7 @@ export default function SelectedTripView({
               </code>
               {selectedTrip.inviteCode && (
                 <button 
-                  onClick={() => copyInviteCode(selectedTrip.inviteCode)} 
+                  onClick={() => onCopyCodeClick(selectedTrip.inviteCode)} 
                   style={styles.primaryBtn}
                 >
                   {copiedCode ? <Check size={16} /> : <Copy size={16} />}
@@ -385,7 +483,11 @@ export default function SelectedTripView({
                     {normalizedRole === 'OWNER' && String(m.userId) !== String(currentUserId) && (
                       <div style={{ position: 'relative' }}>
                         <button 
-                          onClick={() => setActiveMemberMenu(activeMemberMenu === m.userId ? null : m.userId)}
+                          onClick={() => {
+                            const nextMenu = activeMemberMenu === m.userId ? null : m.userId
+                            console.log('[DEBUG] Меню дій для користувача:', { targetUserId: m.userId, open: !!nextMenu })
+                            setActiveMemberMenu(nextMenu)
+                          }}
                           style={styles.moreActionsBtn} 
                         >
                           <MoreHorizontal size={18} color="#666" />
@@ -400,6 +502,7 @@ export default function SelectedTripView({
                           }}>
                             <button
                               onClick={() => {
+                                console.log('[DEBUG] Відкриття модалки зміни ролі для користувача:', m)
                                 setTargetMember(m)
                                 setSelectedRole(m.role || 'MEMBER')
                                 setIsRoleModalOpen(true)
@@ -414,10 +517,7 @@ export default function SelectedTripView({
                               <UserCog size={15} /> Змінити роль
                             </button>
                             <button
-                              onClick={() => {
-                                handleRemoveMember && handleRemoveMember(m.userId)
-                                setActiveMemberMenu(null)
-                              }}
+                              onClick={() => onRemoveMemberClick(m.userId)}
                               style={{
                                 display: 'flex', alignItems: 'center', gap: '8px',
                                 width: '100%', padding: '10px 12px', border: 'none',
@@ -452,7 +552,10 @@ export default function SelectedTripView({
             </h3>
             <select 
               value={selectedRole} 
-              onChange={(e) => setSelectedRole(e.target.value)}
+              onChange={(e) => {
+                console.log('[DEBUG] Роль змінено в селекті:', e.target.value)
+                setSelectedRole(e.target.value)
+              }}
               style={{ width: '100%', padding: '10px', margin: '12px 0 20px 0', borderRadius: '6px', border: '1px solid #ccc' }}
             >
               <option value="MEMBER">MEMBER</option>
@@ -461,7 +564,10 @@ export default function SelectedTripView({
             </select>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button 
-                onClick={() => setIsRoleModalOpen(false)}
+                onClick={() => {
+                  console.log('[DEBUG] Скасовано зміну ролі')
+                  setIsRoleModalOpen(false)
+                }}
                 style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ccc', background: 'none', cursor: 'pointer' }}
               >
                 Скасувати
@@ -518,6 +624,7 @@ export default function SelectedTripView({
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => {
+                  console.log('[DEBUG] Скасовано призначення відповідального')
                   setIsAssignModalOpen(false)
                   setTargetPrepForAssign(null)
                 }}
