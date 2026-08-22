@@ -44,7 +44,7 @@ export default function TripsDashboardView({
               }}
             >
               <div style={styles.heroOverlay}>
-                <span style={styles.heroBadge}>Next adventure</span>
+                <span style={styles.heroBadge}>Наступна подорож</span>
                 <h2 style={styles.heroTitle}>{trips[0].title}</h2>
                 
                 <div style={styles.heroFooter}>

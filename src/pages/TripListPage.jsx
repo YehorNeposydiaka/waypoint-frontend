@@ -74,7 +74,6 @@ export default function TripListPage() {
       const [userRes, tripsRes, statsRes, activitiesRes] = await Promise.all([
         api.get('/api/users/me'),
         api.get('/api/trips').catch(() => ({ data: [] })),
-        api.get('/api/trips/stats').catch(() => ({ data: null })),
         api.get('/api/activities/recent').catch(() => ({ data: [] }))
       ])
 
@@ -83,8 +82,10 @@ export default function TripListPage() {
         setFullNameInput(userRes.data.fullName || '')
       }
 
-      if (statsRes.data) setStats(statsRes.data)
-      if (activitiesRes.data) setActivities(activitiesRes.data)
+      setStats({
+            upcomingTrips: fetchedTrips.length,
+            plannedActivities: 0
+          })
 
       if (tripsRes.data && tripsRes.data.length > 0) {
         const tripsWithMembers = await Promise.all(
