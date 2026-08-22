@@ -69,68 +69,61 @@ export default function TripListPage() {
   }, [])
 
   const fetchData = async () => {
-  setLoading(true)
-  try {
-    const [userRes, tripsRes, activitiesRes] = await Promise.all([
-      api.get('/api/users/me').catch(() => ({ data: null })),
-      api.get('/api/trips').catch(() => ({ data: [] })),
-      api.get('/api/activities/recent').catch(() => ({ data: [] })) // не ламає весь код при 500 помилці
-    ])
+    setLoading(true)
+    try {
+      const [userRes, tripsRes, activitiesRes] = await Promise.all([
+        api.get('/api/users/me').catch(() => ({ data: null })),
+        api.get('/api/trips').catch(() => ({ data: [] })),
+        api.get('/api/activities/recent').catch(() => ({ data: [] }))
+      ])
 
-    if (userRes?.data) {
-      setUser(userRes.data)
-      setFullNameInput(userRes.data.fullName || '')
+      if (userRes?.data) {
+        setUser(userRes.data)
+        setFullNameInput(userRes.data.fullName || '')
+      }
+
+      if (activitiesRes?.data) setActivities(activitiesRes.data)
+
+      const fetchedTrips = Array.isArray(tripsRes?.data) ? tripsRes.data : []
+
+      if (fetchedTrips.length > 0) {
+        const tripsWithMembers = await Promise.all(
+          fetchedTrips.map(async (trip) => {
+            try {
+              const membersRes = await api.get(`/api/trips/${trip.id}/members`)
+              return { ...trip, membersCount: membersRes.data ? membersRes.data.length : 1 }
+            } catch (e) {
+              return { ...trip, membersCount: 1 }
+            }
+          })
+        )
+        setTrips(tripsWithMembers)
+      } else {
+        setTrips([])
+      }
+
+      setStats({
+        upcomingTrips: fetchedTrips.length,
+        plannedActivities: 0
+      })
+    } catch (err) {
+      console.error('Помилка завантаження даних:', err)
+      if (err.response?.status === 401) handleLogout()
+    } finally {
+      setLoading(false)
     }
-
-    if (activitiesRes?.data) setActivities(activitiesRes.data)
-
-    // 1. Чітко оголошуємо змінну з поїздками
-    const fetchedTrips = Array.isArray(tripsRes?.data) ? tripsRes.data : []
-
-    if (fetchedTrips.length > 0) {
-      const tripsWithMembers = await Promise.all(
-        fetchedTrips.map(async (trip) => {
-          try {
-            const membersRes = await api.get(`/api/trips/${trip.id}/members`)
-            return { ...trip, membersCount: membersRes.data ? membersRes.data.length : 1 }
-          } catch (e) {
-            return { ...trip, membersCount: 1 }
-          }
-        })
-      )
-      setTrips(tripsWithMembers)
-    } else {
-      setTrips([])
-    }
-
-    // 2. Встановлюємо кількість поїздок в аналітику
-    setStats({
-      upcomingTrips: fetchedTrips.length,
-      plannedActivities: 0
-    })
-
-  } catch (err) {
-    console.error('Помилка завантаження даних:', err)
-    if (err.response?.status === 401) handleLogout()
-  } finally {
-    setLoading(false)
   }
-}
 
+  // ВИПРАВЛЕННЯ 1: прибрали prepFilter з залежностей — фільтрація тепер локальна
   useEffect(() => {
     if (selectedTrip) fetchPreparations()
-  }, [selectedTrip, prepFilter])
+  }, [selectedTrip])
 
   const fetchPreparations = async () => {
     if (!selectedTrip) return
     setPrepLoading(true)
     try {
-      let res
-      if (prepFilter === 'Mine' && user?.id) {
-        res = await api.get(`/api/trips/${selectedTrip.id}/preparations/user/${user.id}`)
-      } else {
-        res = await api.get(`/api/trips/${selectedTrip.id}/preparations`)
-      }
+      const res = await api.get(`/api/trips/${selectedTrip.id}/preparations`)
       setPreparations(res.data || [])
     } catch (err) {
       console.error('Помилка завантаження пунктів підготовки:', err)
@@ -151,7 +144,6 @@ export default function TripListPage() {
       const res = await api.get(`/api/trips/${selectedTrip.id}/members`)
       const fetchedMembers = res.data || []
       setMembers(fetchedMembers)
-
       if (user?.id) {
         const me = fetchedMembers.find(m => m.userId === user.id)
         setCurrentUserRole(me ? me.role : 'MEMBER')
@@ -220,7 +212,6 @@ export default function TripListPage() {
     }
   }
 
-  // Призначення відповідального за пункт підготовки
   const handleAssignMember = async (prepPointId, targetUserId) => {
     if (!selectedTrip) return
     try {
@@ -267,13 +258,19 @@ export default function TripListPage() {
     }
   }
 
-  const handleTogglePrepComplete = async (prepId, e) => {
-    e.stopPropagation()
+  // ВИПРАВЛЕННЯ 2: прибрали e, виправили URL на /toggle, повертаємо дані
+  const handleTogglePrepComplete = async (prepId) => {
     try {
-      const res = await api.patch(`/api/trips/${selectedTrip.id}/preparations/${prepId}/complete`)
-      setPreparations(prev => prev.map(p => p.id === prepId ? res.data : p))
+      const res = await api.patch(
+        `/api/trips/${selectedTrip.id}/preparations/${prepId}/toggle`
+      )
+      setPreparations(prev =>
+        prev.map(p => p.id === prepId ? res.data : p)
+      )
+      return res.data
     } catch (err) {
       console.error('Помилка зміни стану виконання:', err)
+      throw err
     }
   }
 
@@ -300,14 +297,14 @@ export default function TripListPage() {
     }
   }
 
-  const handleDeletePrepPoint = async (prepId, e) => {
-    e.stopPropagation()
+  const handleDeletePrepPoint = async (prepId) => {
     if (!window.confirm('Ви дійсно бажаєте видалити цей пункт?')) return
     try {
       await api.delete(`/api/trips/${selectedTrip.id}/preparations/${prepId}`)
       setPreparations(prev => prev.filter(p => p.id !== prepId))
     } catch (err) {
       console.error('Помилка видалення пункту:', err)
+      throw err
     }
   }
 

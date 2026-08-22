@@ -102,9 +102,8 @@ export default function SelectedTripView({
     }
   }
 
-  // Оптимістичне перемикання виконання задачі
-  const onToggleComplete = async (prepId, e) => {
-    // Миттєво змінюємо в локальному стейті
+  const onToggleComplete = async (prepId) => {
+    // Оптимістичне оновлення
     setLocalPreparations(prev =>
       prev.map(item =>
         item.id === prepId ? { ...item, completed: !item.completed } : item
@@ -113,22 +112,28 @@ export default function SelectedTripView({
 
     try {
       if (handleTogglePrepComplete) {
-        await handleTogglePrepComplete(prepId, e)
+        const updated = await handleTogglePrepComplete(prepId)
+        if (updated) {
+          setLocalPreparations(prev =>
+            prev.map(item =>
+              item.id === prepId
+                ? { ...item, completed: updated.completed ?? updated.isCompleted ?? item.completed }
+                : item
+            )
+          )
+        }
       }
     } catch (error) {
       console.error('[ERROR] Помилка зміни статусу завдання:', error)
-      // У разі помилки повертаємо назад
       setLocalPreparations(preparations || [])
     }
   }
 
-  // Оптимістичне видалення задачі
-  const onDeletePrep = async (prepId, e) => {
+  const onDeletePrep = async (prepId) => {
     setLocalPreparations(prev => prev.filter(item => item.id !== prepId))
-
     try {
       if (handleDeletePrepPoint) {
-        await handleDeletePrepPoint(prepId, e)
+        await handleDeletePrepPoint(prepId)
       }
     } catch (error) {
       console.error('[ERROR] Помилка видалення пункту:', error)
@@ -350,8 +355,8 @@ export default function SelectedTripView({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         <button 
                           onClick={(e) => {
-                            e.stopPropagation() // Запобігаємо розгортанню картки при кліку на чекбокс
-                            onToggleComplete(item.id, e)
+                            e.stopPropagation()
+                            onToggleComplete(item.id)
                           }} 
                           style={styles.checkboxBtn}
                         >
@@ -437,7 +442,10 @@ export default function SelectedTripView({
                               <UserPlus size={14} /> {assignedMember ? 'Змінити відповідального' : 'Призначити'}
                             </button>
                             <button 
-                              onClick={(e) => onDeletePrep(item.id, e)} 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeletePrep(item.id)
+                              }} 
                               style={{ ...styles.prepActionBtn, color: '#d32f2f' }}
                             >
                               <Trash2 size={14} /> Видалити
