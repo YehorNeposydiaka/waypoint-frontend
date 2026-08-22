@@ -59,25 +59,19 @@ export default function SelectedTripView({
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [targetPrepForAssign, setTargetPrepForAssign] = useState(null)
 
-  // Новий стейт для фільтрації за конкретним юзером
+  // Фільтр по конкретному юзеру
   const [prepUserFilter, setPrepUserFilter] = useState('All')
+
+  // Локальний стейт для завдань задля миттєвого відображення (optimistic update)
+  const [localPreparations, setLocalPreparations] = useState(preparations || [])
+
+  // Синхронізуємо локальний стейт, коли пропси змінюються ззовні
+  useEffect(() => {
+    setLocalPreparations(preparations || [])
+  }, [preparations])
 
   const normalizedRole = currentUserRole ? String(currentUserRole).toUpperCase().trim() : 'MEMBER'
   const canEdit = normalizedRole === 'OWNER' || normalizedRole === 'EDITOR'
-
-  // Лог при рендері або зміні вибраної подорожі / ролі
-  useEffect(() => {
-    console.log('[SelectedTripView] Рендер компонента:', {
-      tripId: selectedTrip?.id,
-      title: selectedTrip?.title,
-      currentUserId,
-      currentUserRole,
-      normalizedRole,
-      canEdit,
-      preparationsCount: preparations?.length || 0,
-      membersCount: members?.length || 0
-    })
-  }, [selectedTrip, currentUserRole, preparations, members])
 
   // Підтвердження зміни ролі
   const onConfirmRoleChange = async () => {
@@ -86,7 +80,7 @@ export default function SelectedTripView({
         await handleUpdateMemberRole(targetMember.userId, selectedRole)
       }
     } catch (error) {
-      console.error('[ERROR] [onConfirmRoleChange] Помилка під час зміни ролі:', error)
+      console.error('[ERROR] Помилка під час зміни ролі:', error)
     } finally {
       setIsRoleModalOpen(false)
       setTargetMember(null)
@@ -101,19 +95,45 @@ export default function SelectedTripView({
         await handleAssignMember(targetPrepForAssign.id, userId)
       }
     } catch (error) {
-      console.error('[ERROR] [onConfirmAssign] Помилка призначення відповідального:', error)
+      console.error('[ERROR] Помилка призначення відповідального:', error)
     } finally {
       setIsAssignModalOpen(false)
       setTargetPrepForAssign(null)
     }
   }
 
-  const onToggleComplete = (prepId, e) => {
-    handleTogglePrepComplete(prepId, e)
+  // Оптимістичне перемикання виконання задачі
+  const onToggleComplete = async (prepId, e) => {
+    // Миттєво змінюємо в локальному стейті
+    setLocalPreparations(prev =>
+      prev.map(item =>
+        item.id === prepId ? { ...item, completed: !item.completed } : item
+      )
+    )
+
+    try {
+      if (handleTogglePrepComplete) {
+        await handleTogglePrepComplete(prepId, e)
+      }
+    } catch (error) {
+      console.error('[ERROR] Помилка зміни статусу завдання:', error)
+      // У разі помилки повертаємо назад
+      setLocalPreparations(preparations || [])
+    }
   }
 
-  const onDeletePrep = (prepId, e) => {
-    handleDeletePrepPoint(prepId, e)
+  // Оптимістичне видалення задачі
+  const onDeletePrep = async (prepId, e) => {
+    setLocalPreparations(prev => prev.filter(item => item.id !== prepId))
+
+    try {
+      if (handleDeletePrepPoint) {
+        await handleDeletePrepPoint(prepId, e)
+      }
+    } catch (error) {
+      console.error('[ERROR] Помилка видалення пункту:', error)
+      setLocalPreparations(preparations || [])
+    }
   }
 
   const onRemoveMemberClick = (userId) => {
@@ -127,8 +147,8 @@ export default function SelectedTripView({
     copyInviteCode(code)
   }
 
-  // Фільтрація завдань (статус + користувач)
-  const filteredPreparations = (preparations || []).filter(item => {
+  // Фільтрація завдань (статус + користувач) на основі локального масиву
+  const filteredPreparations = localPreparations.filter(item => {
     const isCompleted = item.completed || false
 
     // Фільтр по статусу (All / Active / Completed)
@@ -329,7 +349,10 @@ export default function SelectedTripView({
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
                         <button 
-                          onClick={(e) => onToggleComplete(item.id, e)} 
+                          onClick={(e) => {
+                            e.stopPropagation() // Запобігаємо розгортанню картки при кліку на чекбокс
+                            onToggleComplete(item.id, e)
+                          }} 
                           style={styles.checkboxBtn}
                         >
                           {isCompleted ? (
