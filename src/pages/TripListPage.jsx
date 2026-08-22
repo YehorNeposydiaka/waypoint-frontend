@@ -262,7 +262,7 @@ export default function TripListPage() {
   const handleTogglePrepComplete = async (prepId) => {
     try {
       const res = await api.patch(
-        `/api/trips/${selectedTrip.id}/preparations/${prepId}/toggle`
+        `/api/trips/${selectedTrip.id}/preparations/${prepId}/complete`
       )
       setPreparations(prev =>
         prev.map(p => p.id === prepId ? res.data : p)
