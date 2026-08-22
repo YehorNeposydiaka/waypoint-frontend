@@ -69,46 +69,53 @@ export default function TripListPage() {
   }, [])
 
   const fetchData = async () => {
-    setLoading(true)
-    try {
-      const [userRes, tripsRes, statsRes, activitiesRes] = await Promise.all([
-        api.get('/api/users/me'),
-        api.get('/api/trips').catch(() => ({ data: [] })),
-        api.get('/api/activities/recent').catch(() => ({ data: [] }))
-      ])
+  setLoading(true)
+  try {
+    const [userRes, tripsRes, activitiesRes] = await Promise.all([
+      api.get('/api/users/me').catch(() => ({ data: null })),
+      api.get('/api/trips').catch(() => ({ data: [] })),
+      api.get('/api/activities/recent').catch(() => ({ data: [] })) // не ламає весь код при 500 помилці
+    ])
 
-      if (userRes.data) {
-        setUser(userRes.data)
-        setFullNameInput(userRes.data.fullName || '')
-      }
-
-      setStats({
-            upcomingTrips: fetchedTrips.length,
-            plannedActivities: 0
-          })
-
-      if (tripsRes.data && tripsRes.data.length > 0) {
-        const tripsWithMembers = await Promise.all(
-          tripsRes.data.map(async (trip) => {
-            try {
-              const membersRes = await api.get(`/api/trips/${trip.id}/members`)
-              return { ...trip, membersCount: membersRes.data ? membersRes.data.length : 1 }
-            } catch (e) {
-              return { ...trip, membersCount: 1 }
-            }
-          })
-        )
-        setTrips(tripsWithMembers)
-      } else {
-        setTrips([])
-      }
-    } catch (err) {
-      console.error('Помилка завантаження даних:', err)
-      if (err.response?.status === 401) handleLogout()
-    } finally {
-      setLoading(false)
+    if (userRes?.data) {
+      setUser(userRes.data)
+      setFullNameInput(userRes.data.fullName || '')
     }
+
+    if (activitiesRes?.data) setActivities(activitiesRes.data)
+
+    // 1. Чітко оголошуємо змінну з поїздками
+    const fetchedTrips = Array.isArray(tripsRes?.data) ? tripsRes.data : []
+
+    if (fetchedTrips.length > 0) {
+      const tripsWithMembers = await Promise.all(
+        fetchedTrips.map(async (trip) => {
+          try {
+            const membersRes = await api.get(`/api/trips/${trip.id}/members`)
+            return { ...trip, membersCount: membersRes.data ? membersRes.data.length : 1 }
+          } catch (e) {
+            return { ...trip, membersCount: 1 }
+          }
+        })
+      )
+      setTrips(tripsWithMembers)
+    } else {
+      setTrips([])
+    }
+
+    // 2. Встановлюємо кількість поїздок в аналітику
+    setStats({
+      upcomingTrips: fetchedTrips.length,
+      plannedActivities: 0
+    })
+
+  } catch (err) {
+    console.error('Помилка завантаження даних:', err)
+    if (err.response?.status === 401) handleLogout()
+  } finally {
+    setLoading(false)
   }
+}
 
   useEffect(() => {
     if (selectedTrip) fetchPreparations()
