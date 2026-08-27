@@ -18,7 +18,9 @@ import {
   Copy,
   MoreHorizontal,
   LogOut,
-  UserCog
+  UserCog,
+  Edit,
+  Pencil
 } from 'lucide-react'
 import PlaceholderView from './PlaceholderView'
 import { styles } from '../styles/tripListPageStyles'
@@ -45,6 +47,7 @@ export default function SelectedTripView({
   currentUserRole,
   currentUserId,
   handleDeleteTrip,
+  handleEditTrip,
   handleLeaveTrip,
   handleUpdateMemberRole,
   handleRemoveMember,
@@ -58,6 +61,9 @@ export default function SelectedTripView({
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [targetPrepForAssign, setTargetPrepForAssign] = useState(null)
 
+  // Стейт для випадаючого меню дій з подорожжю (редагувати/видалити)
+  const [isTripMenuOpen, setIsTripMenuOpen] = useState(false)
+
   // Фільтр по конкретному юзеру
   const [prepUserFilter, setPrepUserFilter] = useState('All')
 
@@ -65,17 +71,21 @@ export default function SelectedTripView({
   const [localPreparations, setLocalPreparations] = useState(preparations || [])
 
   const menuRef = useRef(null)
+  const tripMenuRef = useRef(null)
 
   // Синхронізуємо локальний стейт, коли пропси змінюються ззовні
   useEffect(() => {
     setLocalPreparations(preparations || [])
   }, [preparations])
 
-  // Закриття контекстного меню при кліку поза ним
+  // Закриття контекстних меню при кліку поза ними
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setActiveMemberMenu(null)
+      }
+      if (tripMenuRef.current && !tripMenuRef.current.contains(event.target)) {
+        setIsTripMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -195,17 +205,57 @@ export default function SelectedTripView({
         </button>
 
         {normalizedRole === 'OWNER' ? (
-          <button 
-            onClick={handleDeleteTrip} 
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '6px', 
-              backgroundColor: '#d32f2f', color: '#fff', border: 'none', 
-              padding: '8px 16px', borderRadius: '8px', cursor: 'pointer',
-              fontWeight: '600', fontSize: '14px'
-            }}
-          >
-            <Trash2 size={16} /> Видалити подорож
-          </button>
+          <div style={{ position: 'relative' }} ref={tripMenuRef}>
+            <button 
+              onClick={() => setIsTripMenuOpen(prev => !prev)} 
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: '6px', 
+                backgroundColor: '#fff', color: '#2b2b2b', border: '1px solid #e5e5e5', 
+                padding: '8px 14px', borderRadius: '8px', cursor: 'pointer',
+                fontWeight: '600', fontSize: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              }}
+            >
+              <MoreHorizontal size={18} /> Меню <ChevronDown size={14} />
+            </button>
+
+            {isTripMenuOpen && (
+              <div style={{
+                position: 'absolute', right: 0, top: '40px',
+                backgroundColor: '#fff', border: '1px solid #e5e5e5',
+                borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                zIndex: 30, minWidth: '160px', overflow: 'hidden'
+              }}>
+                <button
+                  onClick={() => {
+                    setIsTripMenuOpen(false)
+                    if (handleEditTrip) handleEditTrip(selectedTrip)
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    width: '100%', padding: '10px 14px', border: 'none',
+                    background: 'none', textAlign: 'left', cursor: 'pointer',
+                    fontSize: '14px', color: '#2b2b2b'
+                  }}
+                >
+                  <Pencil size={15} color="#4a4a4a" /> Редагувати
+                </button>
+                <button
+                  onClick={() => {
+                    setIsTripMenuOpen(false)
+                    if (handleDeleteTrip) handleDeleteTrip()
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    width: '100%', padding: '10px 14px', border: 'none',
+                    background: 'none', textAlign: 'left', cursor: 'pointer',
+                    fontSize: '14px', color: '#d32f2f', borderTop: '1px solid #f0f0f0'
+                  }}
+                >
+                  <Trash2 size={15} color="#d32f2f" /> Видалити
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <button 
             onClick={handleLeaveTrip} 
