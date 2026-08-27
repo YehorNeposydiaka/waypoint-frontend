@@ -365,6 +365,22 @@ export default function TripListPage() {
         )
       )
 
+      setSelectedTrip(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          membersCount: Math.max(1, (prev.membersCount || 1) - 1)
+        }
+      })
+
+      setTrips(prev =>
+        prev.map(t =>
+          t.id === selectedTrip.id
+            ? { ...t, membersCount: Math.max(1, (t.membersCount || 1) - 1) }
+            : t
+        )
+      )
+
     } catch (err) {
       console.error(
         'Помилка видалення учасника:',
@@ -600,7 +616,6 @@ export default function TripListPage() {
     setCreateTripError('')
 
     try {
-      // 1. Створюємо Trip без картинки
       const response = await api.post(
         '/api/trips',
         {
@@ -617,8 +632,6 @@ export default function TripListPage() {
 
       let createdTrip = response.data
 
-      // 2. Якщо вибрана картинка —
-      //    завантажуємо її в Supabase Storage
       if (newTripData.coverFile) {
         const coverUrl =
           await uploadTripCover(
@@ -626,8 +639,6 @@ export default function TripListPage() {
             newTripData.coverFile
           )
 
-        // 3. Зберігаємо URL картинки
-        //    у PostgreSQL через Spring
         const updateResponse =
           await api.patch(
             `/api/trips/${createdTrip.id}`,
@@ -640,7 +651,6 @@ export default function TripListPage() {
           updateResponse.data
       }
 
-      // 4. Додаємо Trip у локальний список
       const tripWithMembers = {
         ...createdTrip,
         membersCount: 1
@@ -651,10 +661,8 @@ export default function TripListPage() {
         ...prev
       ])
 
-      // 5. Закриваємо модалку
       setIsNewTripOpen(false)
 
-      // 6. Очищаємо форму
       setNewTripData({
         title: '',
         description: '',
@@ -663,7 +671,6 @@ export default function TripListPage() {
         endDate: ''
       })
 
-      // 7. Відкриваємо створений Trip
       setSelectedTrip(
         tripWithMembers
       )
@@ -799,32 +806,35 @@ export default function TripListPage() {
 
   const filteredTrips = trips.filter(
     trip => {
-      const matchesTab =
-        activeTab === 'All'
-          ? true
-          : activeTab === 'Upcoming'
-            ? trip.status === 'UPCOMING'
-            : trip.status === 'IN_PROGRESS'
+      // 1. Фільтрація за активною навігацією лівого меню (Current Trips vs Trip History)
+      let matchesNav = true
+      if (activeNav === 'Current Trips') {
+        matchesNav = ['PLANNING', 'IN_PROGRESS'].includes(trip.status)
+      } else if (activeNav === 'Trip History') {
+        matchesNav = ['COMPLETED', 'DELETED'].includes(trip.status)
+      }
 
-      const query =
-        searchQuery.toLowerCase().trim()
+      // 2. Фільтрація за суб-вкладками (All / Planning / In Progress)
+      let matchesTab = true
+      if (activeTab === 'Planning') {
+        matchesTab = trip.status === 'PLANNING'
+      } else if (activeTab === 'In Progress') {
+        matchesTab = trip.status === 'IN_PROGRESS'
+      } else if (activeTab === 'Completed') {
+        matchesTab = trip.status === 'COMPLETED'
+      } else if (activeTab === 'Deleted') {
+        matchesTab = trip.status === 'DELETED'
+      }
 
+      // 3. Пошук по назві та опису
+      const query = searchQuery.toLowerCase().trim()
       const matchesSearch =
         !query || isSearchQueryUuid
           ? true
-          : (trip.title &&
-              trip.title
-                .toLowerCase()
-                .includes(query)) ||
-            (trip.description &&
-              trip.description
-                .toLowerCase()
-                .includes(query))
+          : (trip.title && trip.title.toLowerCase().includes(query)) ||
+            (trip.description && trip.description.toLowerCase().includes(query))
 
-      return (
-        matchesTab &&
-        matchesSearch
-      )
+      return matchesNav && matchesTab && matchesSearch
     }
   )
 
