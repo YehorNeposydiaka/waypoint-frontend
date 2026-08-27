@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   ArrowLeft,
   Plus,
@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   Paperclip,
-  Edit2,
   UserPlus,
   Trash2,
   MapPin,
@@ -40,7 +39,7 @@ export default function SelectedTripView({
   handleDeletePrepPoint,
   copyInviteCode,
   copiedCode,
-  members,
+  members = [],
   membersLoading,
   getInitials,
   currentUserRole,
@@ -65,10 +64,25 @@ export default function SelectedTripView({
   // Локальний стейт для завдань задля миттєвого відображення (optimistic update)
   const [localPreparations, setLocalPreparations] = useState(preparations || [])
 
+  const menuRef = useRef(null)
+
   // Синхронізуємо локальний стейт, коли пропси змінюються ззовні
   useEffect(() => {
     setLocalPreparations(preparations || [])
   }, [preparations])
+
+  // Закриття контекстного меню при кліку поза ним
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setActiveMemberMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const normalizedRole = currentUserRole ? String(currentUserRole).toUpperCase().trim() : 'MEMBER'
   const canEdit = normalizedRole === 'OWNER' || normalizedRole === 'EDITOR'
@@ -211,14 +225,14 @@ export default function SelectedTripView({
       <div style={{
         ...styles.heroCard,
         backgroundColor: '#ba6e51',
-        backgroundImage: selectedTrip.coverUrl ? `url(${selectedTrip.coverUrl})` : 'none'
+        backgroundImage: selectedTrip?.coverUrl ? `url(${selectedTrip.coverUrl})` : 'none'
       }}>
         <div style={styles.heroOverlay}>
           <div>
-            <span style={styles.heroBadge}>{selectedTrip.status || 'PLANNING'}</span>
-            <h2 style={styles.heroTitle}>{selectedTrip.title}</h2>
+            <span style={styles.heroBadge}>{selectedTrip?.status || 'PLANNING'}</span>
+            <h2 style={styles.heroTitle}>{selectedTrip?.title}</h2>
             <p style={{ margin: '4px 0 0 0', opacity: 0.9, fontSize: '14px' }}>
-              {selectedTrip.startDate} — {selectedTrip.endDate}
+              {selectedTrip?.startDate} — {selectedTrip?.endDate}
             </p>
           </div>
         </div>
@@ -475,9 +489,9 @@ export default function SelectedTripView({
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <code style={{ backgroundColor: '#f3ece7', color: '#ba6e51', padding: '6px 12px', borderRadius: '6px', fontWeight: '600', fontSize: '14px' }}>
-                {selectedTrip.inviteCode || 'Немає коду'}
+                {selectedTrip?.inviteCode || 'Немає коду'}
               </code>
-              {selectedTrip.inviteCode && (
+              {selectedTrip?.inviteCode && (
                 <button 
                   onClick={() => onCopyCodeClick(selectedTrip.inviteCode)} 
                   style={styles.primaryBtn}
@@ -505,7 +519,7 @@ export default function SelectedTripView({
                 <div key={m.userId} style={{ ...styles.memberRowCard, position: 'relative' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={styles.memberAvatar}>
-                      {getInitials(m.fullName)}
+                      {getInitials ? getInitials(m.fullName) : ''}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <span style={{ fontWeight: '600', fontSize: '14px', color: '#2b2b2b' }}>
@@ -523,7 +537,7 @@ export default function SelectedTripView({
                     </span>
 
                     {normalizedRole === 'OWNER' && String(m.userId) !== String(currentUserId) && (
-                      <div style={{ position: 'relative' }}>
+                      <div style={{ position: 'relative' }} ref={activeMemberMenu === m.userId ? menuRef : null}>
                         <button 
                           onClick={() => setActiveMemberMenu(activeMemberMenu === m.userId ? null : m.userId)}
                           style={styles.moreActionsBtn} 
@@ -642,7 +656,7 @@ export default function SelectedTripView({
                   }}
                 >
                   <div style={{ ...styles.memberAvatar, width: '28px', height: '28px', fontSize: '12px' }}>
-                    {getInitials(m.fullName)}
+                    {getInitials ? getInitials(m.fullName) : ''}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontWeight: '600' }}>{m.fullName}</span>
