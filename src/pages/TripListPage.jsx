@@ -18,7 +18,8 @@ import SettingsModal from '../components/modals/SettingsModal'
 export default function TripListPage() {
   const navigate = useNavigate()
 
-  const [activeNav, setActiveNav] = useState('Current Trips')
+  // Початковий стан встановлюємо в українську назву пункту меню Sidebar
+  const [activeNav, setActiveNav] = useState('Поточні подорожі')
   const [isNewTripOpen, setIsNewTripOpen] = useState(false)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
@@ -804,39 +805,45 @@ export default function TripListPage() {
     )
   }
 
-  const filteredTrips = trips.filter(
-    trip => {
-      // 1. Фільтрація за активною навігацією лівого меню (Current Trips vs Trip History)
-      let matchesNav = true
-      if (activeNav === 'Current Trips') {
-        matchesNav = ['PLANNING', 'IN_PROGRESS'].includes(trip.status)
-      } else if (activeNav === 'Trip History') {
-        matchesNav = ['COMPLETED', 'DELETED'].includes(trip.status)
-      }
+  // ОНОВЛЕНА ЛОГІКА ФІЛЬТРАЦІЇ
+  const filteredTrips = trips.filter(trip => {
+    const status = (trip.status || 'PLANNING').toUpperCase()
+    const nav = (activeNav || '').toLowerCase()
 
-      // 2. Фільтрація за суб-вкладками (All / Planning / In Progress)
-      let matchesTab = true
-      if (activeTab === 'Planning') {
-        matchesTab = trip.status === 'PLANNING'
-      } else if (activeTab === 'In Progress') {
-        matchesTab = trip.status === 'IN_PROGRESS'
-      } else if (activeTab === 'Completed') {
-        matchesTab = trip.status === 'COMPLETED'
-      } else if (activeTab === 'Deleted') {
-        matchesTab = trip.status === 'DELETED'
-      }
+    // 1. Фільтрація за пунктом лівого Sidebar
+    let matchesNav = true
 
-      // 3. Пошук по назві та опису
-      const query = searchQuery.toLowerCase().trim()
-      const matchesSearch =
-        !query || isSearchQueryUuid
-          ? true
-          : (trip.title && trip.title.toLowerCase().includes(query)) ||
-            (trip.description && trip.description.toLowerCase().includes(query))
-
-      return matchesNav && matchesTab && matchesSearch
+    if (nav.includes('поточні') || nav.includes('current')) {
+      // У Поточних відображаємо ТІЛЬКИ PLANNING та IN_PROGRESS
+      matchesNav = ['PLANNING', 'IN_PROGRESS'].includes(status)
+    } else if (nav.includes('історія') || nav.includes('history')) {
+      // В Історії відображаємо ТІЛЬКИ COMPLETED
+      matchesNav = status === 'COMPLETED'
+    } else if (nav.includes('видалені') || nav.includes('deleted')) {
+      // У Видалених відображаємо ТІЛЬКИ DELETED
+      matchesNav = status === 'DELETED'
     }
-  )
+
+    // 2. Фільтрація за вкладками дашборду (All / Upcoming / In progress)
+    let matchesTab = true
+    const tab = (activeTab || '').toLowerCase()
+
+    if (tab === 'upcoming' || tab.includes('план')) {
+      matchesTab = status === 'PLANNING'
+    } else if (tab === 'in progress' || tab.includes('процес')) {
+      matchesTab = status === 'IN_PROGRESS'
+    }
+
+    // 3. Текстовий пошук
+    const query = searchQuery.toLowerCase().trim()
+    const matchesSearch =
+      !query || isSearchQueryUuid
+        ? true
+        : (trip.title && trip.title.toLowerCase().includes(query)) ||
+          (trip.description && trip.description.toLowerCase().includes(query))
+
+    return matchesNav && matchesTab && matchesSearch
+  })
 
   return (
     <div style={styles.appLayout}>
