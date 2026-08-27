@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
-import { uploadTripCover } from '../services/storageService'
+import { uploadTripCover } from '../service/storageService'
 
 import { styles } from '../styles/tripListPageStyles'
 import Sidebar from '../components/Sidebar'
