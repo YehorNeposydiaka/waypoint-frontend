@@ -1,11 +1,11 @@
 import { supabase } from '../service/supabase'
 
 export const uploadTripCover = async (tripId, file) => {
-  if (!file) {
-    return null
-  }
+  if (!file || !tripId) return null
 
-  const filePath = `trips/${tripId}/cover`
+  // Отримуємо розширення файлу (png, jpg тощо)
+  const fileExt = file.name.split('.').pop()
+  const filePath = `trips/${tripId}/cover.${fileExt}`
 
   const { error: uploadError } = await supabase.storage
     .from('trip-covers')
