@@ -6,18 +6,29 @@ import { styles } from '../styles/tripListPageStyles'
 export default function TripsDashboardView({
   activeNav,
   setIsNewTripOpen,
-  trips,
+  trips = [],
   setSelectedTrip,
   activeTab,
   setActiveTab,
-  filteredTrips,
+  filteredTrips = [],
   searchQuery,
   stats,
-  activities
+  activities = []
 }) {
   const navLower = (activeNav || '').toLowerCase()
 
-  // 1. Перевіряємо, чи є поточний пункт меню розділом зі списком подорожей
+  // 1. Рахуємо тільки майбутні/активні подорожі (без COMPLETED, DELETED чи CANCELLED)
+  const activeTripsCount = trips.filter(trip => {
+    const status = (trip.status || 'PLANNING').toUpperCase()
+    return (
+      status === 'PLANNING' ||
+      status === 'IN_PROGRESS' ||
+      status === 'ACTIVE' ||
+      status === 'UPCOMING'
+    )
+  }).length
+
+  // 2. Перевіряємо, чи є поточний пункт меню розділом зі списком подорожей
   const isTripListNav =
     navLower.includes('головна') ||
     navLower.includes('поточні') ||
@@ -27,12 +38,12 @@ export default function TripsDashboardView({
     navLower.includes('history') ||
     navLower.includes('deleted')
 
-  // 2. Якщо це Статистика або інший розділ без карт — відображаємо плейхолдер
+  // 3. Якщо це Статистика або інший розділ без карт — відображаємо плейхолдер
   if (!isTripListNav) {
     return <PlaceholderView title={activeNav} icon={<Luggage size={40} color="#ba6e51" />} />
   }
 
-  // 3. Динамічний опис для підзаголовка залежно від активного розділу
+  // 4. Динамічний опис для підзаголовка залежно від активного розділу
   const getSubtitle = () => {
     if (navLower.includes('історія') || navLower.includes('history')) {
       return 'Переглядайте ваші завершені мандрівки та спогади.'
@@ -180,7 +191,8 @@ export default function TripsDashboardView({
             <h3 style={styles.sideCardTitle}>Аналітика</h3>
             <div style={styles.statsGrid}>
               <div style={styles.statBox}>
-                <span style={styles.statNumber}>{stats ? stats.upcomingTrips : 0}</span>
+                {/* Відображаємо тільки відфільтровані майбутні та активні поїздки */}
+                <span style={styles.statNumber}>{activeTripsCount}</span>
                 <span style={styles.statLabel}>Майбутні подорожі</span>
               </div>
               <div style={styles.statBox}>
