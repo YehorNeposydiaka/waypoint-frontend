@@ -15,16 +15,40 @@ export default function TripsDashboardView({
   stats,
   activities
 }) {
-  if (activeNav !== 'Current Trips' && activeNav !== 'Поточні подорожі') {
+  const navLower = (activeNav || '').toLowerCase()
+
+  // 1. Перевіряємо, чи є поточний пункт меню розділом зі списком подорожей
+  const isTripListNav =
+    navLower.includes('головна') ||
+    navLower.includes('поточні') ||
+    navLower.includes('історія') ||
+    navLower.includes('видалені') ||
+    navLower.includes('current') ||
+    navLower.includes('history') ||
+    navLower.includes('deleted')
+
+  // 2. Якщо це Статистика або інший розділ без карт — відображаємо плейхолдер
+  if (!isTripListNav) {
     return <PlaceholderView title={activeNav} icon={<Luggage size={40} color="#ba6e51" />} />
+  }
+
+  // 3. Динамічний опис для підзаголовка залежно від активного розділу
+  const getSubtitle = () => {
+    if (navLower.includes('історія') || navLower.includes('history')) {
+      return 'Переглядайте ваші завершені мандрівки та спогади.'
+    }
+    if (navLower.includes('видалені') || navLower.includes('deleted')) {
+      return 'Архів видалених подорожей.'
+    }
+    return 'Плануйте та керуйте вашими подорожами в одному місці.'
   }
 
   return (
     <>
       <div style={styles.pageHeader}>
         <div>
-          <h1 style={styles.title}>Поточні подорожі</h1>
-          <p style={styles.subtitle}>Плануйте та керуйте вашими подорожами в одному місці.</p>
+          <h1 style={styles.title}>{activeNav}</h1>
+          <p style={styles.subtitle}>{getSubtitle()}</p>
         </div>
         <button onClick={() => setIsNewTripOpen(true)} style={styles.primaryBtn}>
           <Plus size={18} /> Нова подорож
@@ -33,47 +57,52 @@ export default function TripsDashboardView({
 
       <div style={styles.dashboardGrid}>
         <div style={styles.leftColumn}>
-          {trips.length > 0 ? (
-            <div 
-              onClick={() => setSelectedTrip(trips[0])}
-              style={{
-                ...styles.heroCard,
-                cursor: 'pointer',
-                backgroundColor: '#ba6e51',
-                backgroundImage: trips[0].coverUrl ? `url(${trips[0].coverUrl})` : 'none'
-              }}
-            >
-              <div style={styles.heroOverlay}>
-                <span style={styles.heroBadge}>Наступна подорож</span>
-                <h2 style={styles.heroTitle}>{trips[0].title}</h2>
-                
-                <div style={styles.heroFooter}>
-                  <div style={styles.progressContainer}>
-                    <span style={styles.daysText}>
-                      {trips[0].daysToGo ? `${trips[0].daysToGo} днів до початку` : 'Скоро в дорогу'}
-                    </span>
-                    <div style={styles.progressBar}>
-                      <div style={styles.progressFill}></div>
+          {/* Показуємо картку "Наступна подорож" тільки у Поточних або на Головній */}
+          {(navLower.includes('поточні') || navLower.includes('головна')) && (
+            trips.length > 0 ? (
+              <div 
+                onClick={() => setSelectedTrip(trips[0])}
+                style={{
+                  ...styles.heroCard,
+                  cursor: 'pointer',
+                  backgroundColor: '#ba6e51',
+                  backgroundImage: trips[0].coverUrl ? `url(${trips[0].coverUrl})` : 'none'
+                }}
+              >
+                <div style={styles.heroOverlay}>
+                  <span style={styles.heroBadge}>Наступна подорож</span>
+                  <h2 style={styles.heroTitle}>{trips[0].title}</h2>
+                  
+                  <div style={styles.heroFooter}>
+                    <div style={styles.progressContainer}>
+                      <span style={styles.daysText}>
+                        {trips[0].daysToGo ? `${trips[0].daysToGo} днів до початку` : 'Скоро в дорогу'}
+                      </span>
+                      <div style={styles.progressBar}>
+                        <div style={styles.progressFill}></div>
+                      </div>
                     </div>
+                    <button style={styles.heroBtn}>Open trip</button>
                   </div>
-                  <button style={styles.heroBtn}>Open trip</button>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div style={styles.heroEmptyCard}>
-              <Sparkles size={32} color="#ba6e51" />
-              <h3 style={{ margin: '8px 0 4px 0', fontSize: '18px' }}>Немає запланованих пригод</h3>
-              <p style={{ margin: 0, color: '#7a7a7a', fontSize: '14px' }}>
-                Створіть свою першу подорож або приєднайтеся за кодом!
-              </p>
-            </div>
+            ) : (
+              <div style={styles.heroEmptyCard}>
+                <Sparkles size={32} color="#ba6e51" />
+                <h3 style={{ margin: '8px 0 4px 0', fontSize: '18px' }}>Немає запланованих пригод</h3>
+                <p style={{ margin: 0, color: '#7a7a7a', fontSize: '14px' }}>
+                  Створіть свою першу подорож або приєднайтеся за кодом!
+                </p>
+              </div>
+            )
           )}
 
           <div style={styles.tripsSection}>
             <div style={styles.tripsSectionHeader}>
-              <h3 style={styles.sectionTitle}>Поточні</h3>
-              {trips.length > 0 && (
+              <h3 style={styles.sectionTitle}>{activeNav}</h3>
+              
+              {/* Таби фільтрації ("All", "Upcoming", "In progress") рендеримо тільки у Поточних */}
+              {(navLower.includes('поточні') || navLower.includes('головна')) && trips.length > 0 && (
                 <div style={styles.controlsRow}>
                   <div style={styles.segmentedControlSmall}>
                     {['All', 'Upcoming', 'In progress'].map(tab => (
@@ -133,10 +162,12 @@ export default function TripsDashboardView({
               <div style={styles.emptyTripsBox}>
                 <Luggage size={40} color="#ba6e51" />
                 <h4 style={styles.emptyTitle}>
-                  {searchQuery ? 'Поїздок за таким запитом не знайдено' : 'Список поїздок порожній'}
+                  {searchQuery ? 'Поїздок за таким запитом не знайдено' : 'У цьому розділі немає поїздок'}
                 </h4>
                 <p style={styles.emptyText}>
-                  Для початку вашої нової подорожі натисніть кнопку <b>"Нова подорож"</b> або введіть <b>інвайт-код</b> у полі пошуку.
+                  {navLower.includes('історія') 
+                    ? 'Завершені подорожі (зі статусом COMPLETED) з’являться тут.'
+                    : 'Для початку вашої нової подорожі натисніть кнопку "Нова подорож" або введіть інвайт-код у полі пошуку.'}
                 </p>
               </div>
             )}
