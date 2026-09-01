@@ -7,7 +7,7 @@ import PreparationTab from './tabs/PreparationTab'
 import MembersTab from './tabs/MembersTab'
 import ChangeRoleModal from './modals/ChangeRoleModal'
 import AssignMemberModal from './modals/AssignMemberModal'
-import { styles } from '../styles/tripListPageStyles'
+import { styles } from '../styles/App'
 
 export default function SelectedTripView({
   selectedTrip,
