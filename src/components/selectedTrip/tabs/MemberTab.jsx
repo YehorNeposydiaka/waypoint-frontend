@@ -26,20 +26,23 @@ export default function MemberTab({
   // Захист від undefined / null об'єкта member
   if (!member) return null
 
-  // Універсальне отримання ID користувача
+  // Універсальне отримання ID користувача (підтримує userId, id або memberId)
   const targetUserId = member.userId ?? member.id ?? member.memberId
   const isSelf = targetUserId != null && currentUserId != null && String(targetUserId) === String(currentUserId)
   const canManage = normalizedRole === 'OWNER' && !isSelf
+
+  // Безпечне витягування імені
+  const memberName = member.fullName || member.name || 'Без імені'
 
   return (
     <div style={{ ...styles.memberRowCard, position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={styles.memberAvatar}>
-          {getInitials ? getInitials(member.fullName || member.name) : (member.fullName || member.name || 'U').charAt(0)}
+          {getInitials ? getInitials(memberName) : memberName.charAt(0)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontWeight: '600', fontSize: '14px', color: '#2b2b2b' }}>
-            {member.fullName || member.name || 'Без імені'} {isSelf && <span style={{ color: '#888', fontWeight: '400' }}>(Ви)</span>}
+            {memberName} {isSelf && <span style={{ color: '#888', fontWeight: '400' }}>(Ви)</span>}
           </span>
           <span style={styles.roleBadge}>
             {member.role || 'MEMBER'}
