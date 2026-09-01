@@ -1,3 +1,4 @@
+// src/pages/TripListPage.jsx
 import React, { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -525,7 +526,7 @@ export default function TripListPage() {
   }
 
   const handleCreatePrepPoint = async (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
 
     setCreatePrepLoading(true)
 
@@ -611,7 +612,7 @@ export default function TripListPage() {
   }
 
   const handleCreateTrip = async (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
 
     setCreateTripLoading(true)
     setCreateTripError('')
@@ -695,7 +696,7 @@ export default function TripListPage() {
   }
 
   const handleUpdateProfile = async (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
 
     setUpdateUserLoading(true)
 
@@ -733,7 +734,7 @@ export default function TripListPage() {
   }
 
   const handleChangePassword = async (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
 
     setPasswordLoading(true)
 
@@ -988,24 +989,16 @@ export default function TripListPage() {
         )}
       </main>
 
+      {/* Універсальна модалка для створення подорожі */}
       <NewTripModal
         isOpen={isNewTripOpen}
-        onClose={() =>
-          setIsNewTripOpen(false)
-        }
-        newTripData={newTripData}
-        setNewTripData={
-          setNewTripData
-        }
-        handleCreateTrip={
-          handleCreateTrip
-        }
-        createTripLoading={
-          createTripLoading
-        }
-        createTripError={
-          createTripError
-        }
+        onClose={() => setIsNewTripOpen(false)}
+        tripData={newTripData}
+        setTripData={setNewTripData}
+        handleSubmit={handleCreateTrip}
+        loading={createTripLoading}
+        error={createTripError}
+        isEdit={false}
       />
 
       <NewPrepModal
