@@ -24,7 +24,7 @@ export default function TripModal({
   }
 
   const onSubmitForm = (e) => {
-    e.preventDefault()
+    if (e && e.preventDefault) e.preventDefault()
     if (handleSubmit) {
       handleSubmit(e)
     }
@@ -99,7 +99,7 @@ export default function TripModal({
                 ...styles.input,
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 gap: '8px',
                 cursor: 'pointer',
                 minHeight: '44px',
@@ -127,7 +127,11 @@ export default function TripModal({
               Скасувати
             </button>
 
-            <button type="submit" disabled={loading} style={styles.primaryBtn}>
+            <button 
+              type="submit" 
+              disabled={loading} 
+              style={styles.primaryBtn}
+            >
               {loading ? (
                 <>
                   <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />

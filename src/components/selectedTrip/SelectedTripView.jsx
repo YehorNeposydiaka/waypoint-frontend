@@ -82,7 +82,9 @@ export default function SelectedTripView({
 
   // Обробник збереження відредагованої поїздки
   const onSubmitUpdateTrip = async (e) => {
-    if (e && e.preventDefault) e.preventDefault()
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault()
+    }
 
     if (handleEditTrip) {
       try {
