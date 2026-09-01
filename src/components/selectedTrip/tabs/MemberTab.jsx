@@ -8,7 +8,7 @@ import {
   UserCog,
   Trash2
 } from 'lucide-react'
-import { styles } from '../styles/tripListPageStyles'
+import { styles } from '../../styles/tripListPageStyles'
 
 export default function MemberTab({
   selectedTrip,
