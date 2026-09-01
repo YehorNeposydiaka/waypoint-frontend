@@ -11,7 +11,7 @@ import Header from '../components/Header'
 import SelectedTripView from '../components/selectedTrip/SelectedTripView'
 import TripsDashboardView from '../components/TripsDashboardView'
 
-import NewTripModal from '../components/modals/NewTripModal'
+import NewTripModal from '../components/modals/TripModal'
 import NewPrepModal from '../components/modals/NewPrepModal'
 import SettingsModal from '../components/modals/SettingsModal'
 

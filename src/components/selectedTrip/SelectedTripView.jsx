@@ -1,3 +1,4 @@
+// src/components/selectedTrip/SelectedTripView.jsx
 import React, { useState, useEffect, useRef } from 'react'
 import { MapPin, BarChart3 } from 'lucide-react'
 import PlaceholderView from '../PlaceholderView'
@@ -7,6 +8,7 @@ import PreparationTab from './tabs/PreparationTab'
 import MembersTab from './tabs/MemberTab'
 import ChangeRoleModal from './modals/ChangeRoleModal'
 import AssignMemberModal from './modals/AssignMemberModal'
+import TripModal from '../modals/TripModal'
 import { styles } from '../../styles/tripListPageStyles'
 
 export default function SelectedTripView({
@@ -35,7 +37,9 @@ export default function SelectedTripView({
   handleLeaveTrip,
   handleUpdateMemberRole,
   handleRemoveMember,
-  handleAssignMember
+  handleAssignMember,
+  editTripLoading,
+  editTripError
 }) {
   const [targetMember, setTargetMember] = useState(null)
   const [selectedRole, setSelectedRole] = useState('MEMBER')
@@ -45,12 +49,44 @@ export default function SelectedTripView({
   const [prepUserFilter, setPrepUserFilter] = useState('All')
   const [localPreparations, setLocalPreparations] = useState(preparations || [])
 
+  // Стейт відкриття та даних модалки редагування
+  const [isEditTripOpen, setIsEditTripOpen] = useState(false)
+  const [editTripData, setEditTripData] = useState({
+    title: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    coverFile: null
+  })
+
   useEffect(() => {
     setLocalPreparations(preparations || [])
   }, [preparations])
 
   const normalizedRole = currentUserRole ? String(currentUserRole).toUpperCase().trim() : 'MEMBER'
   const canEdit = normalizedRole === 'OWNER' || normalizedRole === 'EDITOR'
+
+  // Заповнення форми даними поточного selectedTrip і відкриття модалки
+  const onOpenEditModal = () => {
+    if (selectedTrip) {
+      setEditTripData({
+        title: selectedTrip.title || '',
+        description: selectedTrip.description || '',
+        startDate: selectedTrip.startDate || '',
+        endDate: selectedTrip.endDate || '',
+        coverFile: null
+      })
+      setIsEditTripOpen(true)
+    }
+  }
+
+  // Обробник збереження відредагованої поїздки
+  const onSubmitUpdateTrip = async (e) => {
+    if (handleEditTrip) {
+      await handleEditTrip(editTripData)
+      setIsEditTripOpen(false)
+    }
+  }
 
   const onConfirmRoleChange = async () => {
     try {
@@ -128,7 +164,7 @@ export default function SelectedTripView({
         onBack={() => setSelectedTrip(null)}
         normalizedRole={normalizedRole}
         selectedTrip={selectedTrip}
-        handleEditTrip={handleEditTrip}
+        handleEditTrip={onOpenEditModal}
         handleDeleteTrip={handleDeleteTrip}
         handleLeaveTrip={handleLeaveTrip}
       />
@@ -200,6 +236,18 @@ export default function SelectedTripView({
           handleRemoveMember={handleRemoveMember}
         />
       )}
+
+      {/* Перевикористовувана форма створення/редагування в режимі isEdit */}
+      <TripModal
+        isOpen={isEditTripOpen}
+        onClose={() => setIsEditTripOpen(false)}
+        tripData={editTripData}
+        setTripData={setEditTripData}
+        handleSubmit={onSubmitUpdateTrip}
+        loading={editTripLoading}
+        error={editTripError}
+        isEdit={true}
+      />
 
       <ChangeRoleModal
         isOpen={isRoleModalOpen}
