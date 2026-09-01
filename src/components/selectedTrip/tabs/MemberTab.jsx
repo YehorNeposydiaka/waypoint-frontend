@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { MoreHorizontal, UserCog, Trash2 } from 'lucide-react'
 import { styles } from '../../../styles/tripListPageStyles'
 
-export default function MemberRow({
+export default function MemberTab({
   member,
   getInitials,
   normalizedRole,
@@ -23,18 +23,23 @@ export default function MemberRow({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const isSelf = String(member.userId) === String(currentUserId)
+  // Захист від undefined / null об'єкта member
+  if (!member) return null
+
+  // Універсальне отримання ID користувача
+  const targetUserId = member.userId ?? member.id ?? member.memberId
+  const isSelf = targetUserId != null && currentUserId != null && String(targetUserId) === String(currentUserId)
   const canManage = normalizedRole === 'OWNER' && !isSelf
 
   return (
     <div style={{ ...styles.memberRowCard, position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={styles.memberAvatar}>
-          {getInitials ? getInitials(member.fullName) : ''}
+          {getInitials ? getInitials(member.fullName || member.name) : (member.fullName || member.name || 'U').charAt(0)}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontWeight: '600', fontSize: '14px', color: '#2b2b2b' }}>
-            {member.fullName || 'Без імені'} {isSelf && <span style={{ color: '#888', fontWeight: '400' }}>(Ви)</span>}
+            {member.fullName || member.name || 'Без імені'} {isSelf && <span style={{ color: '#888', fontWeight: '400' }}>(Ви)</span>}
           </span>
           <span style={styles.roleBadge}>
             {member.role || 'MEMBER'}
@@ -66,7 +71,7 @@ export default function MemberRow({
                 <button
                   onClick={() => {
                     setIsMenuOpen(false)
-                    onOpenRoleModal(member)
+                    if (onOpenRoleModal) onOpenRoleModal(member)
                   }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '8px',
@@ -80,7 +85,7 @@ export default function MemberRow({
                 <button
                   onClick={() => {
                     setIsMenuOpen(false)
-                    if (handleRemoveMember) handleRemoveMember(member.userId)
+                    if (handleRemoveMember && targetUserId) handleRemoveMember(targetUserId)
                   }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '8px',
