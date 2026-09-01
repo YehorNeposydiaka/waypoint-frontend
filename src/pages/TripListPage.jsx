@@ -88,6 +88,10 @@ export default function TripListPage() {
   const [createTripLoading, setCreateTripLoading] = useState(false)
   const [createTripError, setCreateTripError] = useState('')
 
+  // Стейти для редагування поїздки
+  const [editTripLoading, setEditTripLoading] = useState(false)
+  const [editTripError, setEditTripError] = useState('')
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -245,6 +249,64 @@ export default function TripListPage() {
       )
     }
   }, [user, members])
+
+  // РЕДАГУВАННЯ ПОЇЗДКИ
+  const handleEditTrip = async (updatedData) => {
+    if (!selectedTrip) return
+
+    setEditTripLoading(true)
+    setEditTripError('')
+
+    try {
+      // 1. Оновлюємо основну інформацію про поїздку
+      const response = await api.patch(
+        `/api/trips/${selectedTrip.id}`,
+        {
+          title: updatedData.title,
+          description: updatedData.description || null,
+          startDate: updatedData.startDate,
+          endDate: updatedData.endDate
+        }
+      )
+
+      let updatedTrip = response.data
+
+      // 2. Якщо вибрано нову обкладинку, завантажуємо її
+      if (updatedData.coverFile) {
+        const coverUrl = await uploadTripCover(
+          selectedTrip.id,
+          updatedData.coverFile
+        )
+
+        const coverResponse = await api.patch(
+          `/api/trips/${selectedTrip.id}`,
+          { coverUrl }
+        )
+
+        updatedTrip = coverResponse.data
+      }
+
+      // Зберігаємо кількість учасників
+      const finalTripData = {
+        ...updatedTrip,
+        membersCount: selectedTrip.membersCount || 1
+      }
+
+      // 3. Оновлюємо стан у списку та в обраній поїздці
+      setTrips(prev =>
+        prev.map(t => (t.id === selectedTrip.id ? finalTripData : t))
+      )
+      setSelectedTrip(finalTripData)
+
+    } catch (err) {
+      console.error('Помилка редагування поїздки:', err)
+      const errorMsg = err.response?.data?.message || 'Не вдалося оновити поїздку'
+      setEditTripError(errorMsg)
+      throw new Error(errorMsg)
+    } finally {
+      setEditTripLoading(false)
+    }
+  }
 
   const handleDeleteTrip = async () => {
     if (
@@ -929,6 +991,9 @@ export default function TripListPage() {
               currentUserRole
             }
             currentUserId={user?.id}
+            handleEditTrip={handleEditTrip}
+            editTripLoading={editTripLoading}
+            editTripError={editTripError}
             handleDeleteTrip={
               handleDeleteTrip
             }
