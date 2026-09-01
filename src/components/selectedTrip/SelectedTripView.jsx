@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { MapPin, BarChart3 } from 'lucide-react'
-import PlaceholderView from './PlaceholderView'
+import PlaceholderView from '../PlaceholderView'
 import TripHeader from './TripHeader'
 import TripHeroCard from './TripHeroCard'
 import PreparationTab from './tabs/PreparationTab'
 import MembersTab from './tabs/MembersTab'
 import ChangeRoleModal from './modals/ChangeRoleModal'
 import AssignMemberModal from './modals/AssignMemberModal'
-import { styles } from '../styles/App'
+import { styles } from '../../styles/tripListPageStyles'
 
 export default function SelectedTripView({
   selectedTrip,
