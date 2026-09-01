@@ -8,7 +8,7 @@ import { uploadTripCover } from '../service/storageService'
 import { styles } from '../styles/tripListPageStyles'
 import Sidebar from '../components/Sidebar'
 import Header from '../components/Header'
-import SelectedTripView from '../components/SelectedTripView'
+import SelectedTripView from '../components/selectedTrip/SelectedTripView'
 import TripsDashboardView from '../components/TripsDashboardView'
 
 import NewTripModal from '../components/modals/NewTripModal'
