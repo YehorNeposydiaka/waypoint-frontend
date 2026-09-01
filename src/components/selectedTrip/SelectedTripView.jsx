@@ -1,5 +1,5 @@
 // src/components/selectedTrip/SelectedTripView.jsx
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MapPin, BarChart3 } from 'lucide-react'
 import PlaceholderView from '../PlaceholderView'
 import TripHeader from './TripHeader'
@@ -82,9 +82,15 @@ export default function SelectedTripView({
 
   // Обробник збереження відредагованої поїздки
   const onSubmitUpdateTrip = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+
     if (handleEditTrip) {
-      await handleEditTrip(editTripData)
-      setIsEditTripOpen(false)
+      try {
+        await handleEditTrip(editTripData)
+        setIsEditTripOpen(false)
+      } catch (error) {
+        console.error('[ERROR] Помилка оновлення поїздки:', error)
+      }
     }
   }
 
