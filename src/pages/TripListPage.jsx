@@ -14,7 +14,38 @@ import TripsDashboardView from '../components/TripsDashboardView'
 
 import NewTripModal from '../components/modals/TripModal'
 import NewPrepModal from '../components/modals/NewPrepModal'
+import RouteItemModal from '../components/modals/RouteItemModal'
 import SettingsModal from '../components/modals/SettingsModal'
+import { combineDateAndTime, addMinutes } from '../utils/routeUtils'
+
+// Порожній стан форми модалки маршруту. itemType не заданий на створенні —
+// це вмикає крок вибору типу (Точка / Трансфер) у RouteItemModal.
+function getEmptyRouteFormData(itemType = null) {
+  return {
+    itemType,
+    title: '',
+    note: '',
+    cost: '',
+
+    // Checkpoint
+    checkpointType: 'LANDMARK',
+    location: '',
+    startDate: '',
+    startTime: '',
+    useDuration: false,
+    durationMinutes: '',
+
+    // Transfer
+    transferType: 'PLANE',
+    departureLocation: '',
+    arrivalLocation: '',
+    departureDate: '',
+    departureTime: '',
+    arrivalDate: '',
+    arrivalTime: '',
+    ticketUrl: ''
+  }
+}
 
 export default function TripListPage() {
   const navigate = useNavigate()
@@ -32,6 +63,20 @@ export default function TripListPage() {
   const [prepLoading, setPrepLoading] = useState(false)
   const [expandedPrepId, setExpandedPrepId] = useState(null)
   const [isNewPrepOpen, setIsNewPrepOpen] = useState(false)
+
+  // Маршрут (чекпоінти + трансфери) — таб "Поїздка"
+  const [checkpoints, setCheckpoints] = useState([])
+  const [transfers, setTransfers] = useState([])
+  const [routeLoading, setRouteLoading] = useState(false)
+  const [routeView, setRouteView] = useState('list') // 'list' | 'timeline'
+  const [routeFilter, setRouteFilter] = useState('All') // 'All' | 'Transfers' | 'Checkpoints'
+  const [expandedRouteId, setExpandedRouteId] = useState(null)
+
+  const [isRouteModalOpen, setIsRouteModalOpen] = useState(false)
+  const [routeModalMode, setRouteModalMode] = useState('create') // 'create' | 'edit'
+  const [editingRouteItem, setEditingRouteItem] = useState(null) // { id, kind } поточного елементу при редагуванні
+  const [routeFormData, setRouteFormData] = useState(getEmptyRouteFormData())
+  const [routeSubmitLoading, setRouteSubmitLoading] = useState(false)
 
   const [members, setMembers] = useState([])
   const [membersLoading, setMembersLoading] = useState(false)
@@ -192,6 +237,40 @@ export default function TripListPage() {
 
     } finally {
       setPrepLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedTrip) {
+      fetchRouteItems()
+    }
+  }, [selectedTrip])
+
+  const fetchRouteItems = async () => {
+    if (!selectedTrip) return
+
+    setRouteLoading(true)
+
+    try {
+      const [checkpointsRes, transfersRes] = await Promise.all([
+        api.get(`/api/trips/${selectedTrip.id}/checkpoints`),
+        api.get(`/api/trips/${selectedTrip.id}/transfers`)
+      ])
+
+      setCheckpoints(checkpointsRes.data || [])
+      setTransfers(transfersRes.data || [])
+
+    } catch (err) {
+      console.error(
+        'Помилка завантаження маршруту:',
+        err
+      )
+
+      setCheckpoints([])
+      setTransfers([])
+
+    } finally {
+      setRouteLoading(false)
     }
   }
 
@@ -673,6 +752,178 @@ export default function TripListPage() {
     }
   }
 
+  // МАРШРУТ (ЧЕКПОІНТИ + ТРАНСФЕРИ)
+
+  const openNewRouteItem = () => {
+    setRouteModalMode('create')
+    setEditingRouteItem(null)
+    setRouteFormData(getEmptyRouteFormData())
+    setIsRouteModalOpen(true)
+  }
+
+  const openEditRouteItem = (item) => {
+    setRouteModalMode('edit')
+    setEditingRouteItem({ id: item.id, kind: item.kind })
+
+    if (item.kind === 'transfer') {
+      const [departureDate, departureTime] = (item.departureTime || '').split('T')
+      const [arrivalDate, arrivalTime] = (item.arrivalTime || '').split('T')
+
+      setRouteFormData({
+        ...getEmptyRouteFormData('TRANSFER'),
+        title: item.title || '',
+        note: item.note || '',
+        cost: item.cost ?? '',
+        transferType: item.type || 'PLANE',
+        departureLocation: item.departureLocation || '',
+        arrivalLocation: item.arrivalLocation || '',
+        departureDate: departureDate || '',
+        departureTime: (departureTime || '').slice(0, 5),
+        arrivalDate: arrivalDate || '',
+        arrivalTime: (arrivalTime || '').slice(0, 5),
+        ticketUrl: item.ticketUrl || ''
+      })
+    } else {
+      const [startDate, startTime] = (item.startTime || '').split('T')
+
+      setRouteFormData({
+        ...getEmptyRouteFormData('CHECKPOINT'),
+        title: item.title || '',
+        note: item.note || '',
+        cost: item.cost ?? '',
+        checkpointType: item.checkpointType || 'LANDMARK',
+        location: item.location || '',
+        startDate: startDate || '',
+        startTime: (startTime || '').slice(0, 5),
+        useDuration: false,
+        durationMinutes: ''
+      })
+    }
+
+    setIsRouteModalOpen(true)
+  }
+
+  const closeRouteModal = () => {
+    setIsRouteModalOpen(false)
+    setEditingRouteItem(null)
+    setRouteFormData(getEmptyRouteFormData())
+  }
+
+  const handleSubmitRouteItem = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    if (!selectedTrip) return
+
+    const isTransfer = routeFormData.itemType === 'TRANSFER'
+    setRouteSubmitLoading(true)
+
+    try {
+      if (isTransfer) {
+        const departureTime = combineDateAndTime(routeFormData.departureDate, routeFormData.departureTime)
+        const arrivalTime = routeFormData.arrivalDate
+          ? combineDateAndTime(routeFormData.arrivalDate, routeFormData.arrivalTime)
+          : null
+
+        const payload = {
+          title: routeFormData.title,
+          note: routeFormData.note || null,
+          transferType: routeFormData.transferType,
+          departureTime,
+          arrivalTime,
+          cost: routeFormData.cost ? parseFloat(routeFormData.cost) : null,
+          ticketUrl: routeFormData.ticketUrl || null,
+          departureLocation: routeFormData.departureLocation,
+          arrivalLocation: routeFormData.arrivalLocation
+        }
+
+        if (routeModalMode === 'edit' && editingRouteItem) {
+          const res = await api.patch(
+            `/api/trips/${selectedTrip.id}/transfers/${editingRouteItem.id}`,
+            payload
+          )
+          setTransfers(prev => prev.map(t => (t.id === editingRouteItem.id ? res.data : t)))
+        } else {
+          const res = await api.post(
+            `/api/trips/${selectedTrip.id}/transfers`,
+            payload
+          )
+          setTransfers(prev => [res.data, ...prev])
+        }
+      } else {
+        const startTime = combineDateAndTime(routeFormData.startDate, routeFormData.startTime)
+        const endTime = routeFormData.useDuration && routeFormData.durationMinutes
+          ? addMinutes(startTime, routeFormData.durationMinutes)
+          : null
+
+        const payload = {
+          title: routeFormData.title,
+          note: routeFormData.note || null,
+          checkpointType: routeFormData.checkpointType,
+          startTime,
+          endTime,
+          cost: routeFormData.cost ? parseFloat(routeFormData.cost) : null,
+          location: routeFormData.location
+        }
+
+        if (routeModalMode === 'edit' && editingRouteItem) {
+          const res = await api.patch(
+            `/api/trips/${selectedTrip.id}/checkpoints/${editingRouteItem.id}`,
+            payload
+          )
+          setCheckpoints(prev => prev.map(c => (c.id === editingRouteItem.id ? res.data : c)))
+        } else {
+          const res = await api.post(
+            `/api/trips/${selectedTrip.id}/checkpoints`,
+            payload
+          )
+          setCheckpoints(prev => [res.data, ...prev])
+        }
+      }
+
+      closeRouteModal()
+
+    } catch (err) {
+      console.error(
+        'Помилка збереження пункту маршруту:',
+        err
+      )
+
+      alert(
+        routeModalMode === 'edit'
+          ? 'Не вдалося зберегти зміни'
+          : 'Не вдалося створити пункт маршруту'
+      )
+
+    } finally {
+      setRouteSubmitLoading(false)
+    }
+  }
+
+  const handleDeleteRouteItem = async (item) => {
+    if (!window.confirm('Ви дійсно бажаєте видалити цей пункт?')) return
+
+    const isTransfer = item.kind === 'transfer'
+
+    try {
+      await api.delete(
+        `/api/trips/${selectedTrip.id}/${isTransfer ? 'transfers' : 'checkpoints'}/${item.id}`
+      )
+
+      if (isTransfer) {
+        setTransfers(prev => prev.filter(t => t.id !== item.id))
+      } else {
+        setCheckpoints(prev => prev.filter(c => c.id !== item.id))
+      }
+
+    } catch (err) {
+      console.error(
+        'Помилка видалення пункту маршруту:',
+        err
+      )
+
+      alert('Не вдалося видалити пункт')
+    }
+  }
+
   const handleCreateTrip = async (e) => {
     if (e && e.preventDefault) e.preventDefault()
 
@@ -1009,6 +1260,18 @@ export default function TripListPage() {
             handleAssignMember={
               handleAssignMember
             }
+            routeView={routeView}
+            setRouteView={setRouteView}
+            routeFilter={routeFilter}
+            setRouteFilter={setRouteFilter}
+            routeLoading={routeLoading}
+            checkpoints={checkpoints}
+            transfers={transfers}
+            expandedRouteId={expandedRouteId}
+            setExpandedRouteId={setExpandedRouteId}
+            onOpenNewRouteItem={openNewRouteItem}
+            onDeleteRouteItem={handleDeleteRouteItem}
+            onOpenEditRouteItem={openEditRouteItem}
           />
         ) : loading ? (
           <div style={styles.loaderContainer}>
@@ -1081,6 +1344,16 @@ export default function TripListPage() {
         createPrepLoading={
           createPrepLoading
         }
+      />
+
+      <RouteItemModal
+        isOpen={isRouteModalOpen}
+        onClose={closeRouteModal}
+        mode={routeModalMode}
+        formData={routeFormData}
+        setFormData={setRouteFormData}
+        onSubmit={handleSubmitRouteItem}
+        submitLoading={routeSubmitLoading}
       />
 
       <SettingsModal

@@ -1,10 +1,11 @@
 // src/components/selectedTrip/SelectedTripView.jsx
 import React, { useState, useEffect } from 'react'
-import { MapPin, BarChart3 } from 'lucide-react'
+import { BarChart3 } from 'lucide-react'
 import PlaceholderView from '../PlaceholderView'
 import TripHeader from './TripHeader'
 import TripHeroCard from './TripHeroCard'
 import PreparationTab from './tabs/PreparationTab'
+import RouteTab from './tabs/RouteTab'
 import MembersTab from './tabs/MemberTab'
 import ChangeRoleModal from './modals/ChangeRoleModal'
 import AssignMemberModal from './modals/AssignMemberModal'
@@ -39,7 +40,19 @@ export default function SelectedTripView({
   handleRemoveMember,
   handleAssignMember,
   editTripLoading,
-  editTripError
+  editTripError,
+  routeView,
+  setRouteView,
+  routeFilter,
+  setRouteFilter,
+  routeLoading,
+  checkpoints,
+  transfers,
+  expandedRouteId,
+  setExpandedRouteId,
+  onOpenNewRouteItem,
+  onDeleteRouteItem,
+  onOpenEditRouteItem
 }) {
   const [targetMember, setTargetMember] = useState(null)
   const [selectedRole, setSelectedRole] = useState('MEMBER')
@@ -223,7 +236,24 @@ export default function SelectedTripView({
         />
       )}
 
-      {tripTab === 'Trip' && <PlaceholderView title="Деталі поїздки та маршрут" icon={<MapPin size={40} color="#ba6e51" />} />}
+      {tripTab === 'Trip' && (
+        <RouteTab
+          selectedTrip={selectedTrip}
+          routeView={routeView}
+          setRouteView={setRouteView}
+          routeFilter={routeFilter}
+          setRouteFilter={setRouteFilter}
+          canEdit={canEdit}
+          onOpenNew={onOpenNewRouteItem}
+          routeLoading={routeLoading}
+          checkpoints={checkpoints}
+          transfers={transfers}
+          expandedRouteId={expandedRouteId}
+          setExpandedRouteId={setExpandedRouteId}
+          onDeleteItem={onDeleteRouteItem}
+          onOpenEdit={onOpenEditRouteItem}
+        />
+      )}
       {tripTab === 'Stats' && <PlaceholderView title="Статистика та витрати" icon={<BarChart3 size={40} color="#ba6e51" />} />}
 
       {tripTab === 'Members' && (
