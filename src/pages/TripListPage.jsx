@@ -15,7 +15,7 @@ import TripsDashboardView from '../components/TripsDashboardView'
 import NewTripModal from '../components/modals/TripModal'
 import NewPrepModal from '../components/modals/NewPrepModal'
 import RouteItemModal from '../components/modals/RouteItemModal'
-import SettingsModal from '../components/modals/SettingsModal'
+import SettingsModal from '../components/selectedTrip/modals/SettingsModal'
 import { combineDateAndTime, addMinutes } from '../utils/routeUtils'
 
 // Порожній стан форми модалки маршруту. itemType не заданий на створенні —
