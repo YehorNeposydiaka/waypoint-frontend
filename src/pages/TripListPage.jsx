@@ -14,7 +14,7 @@ import TripsDashboardView from '../components/TripsDashboardView'
 
 import NewTripModal from '../components/modals/TripModal'
 import NewPrepModal from '../components/modals/NewPrepModal'
-import RouteItemModal from '../components/modals/RouteItemModal'
+import RouteItemModal from '../components/selectedTrip/modals/RouteItemModal'
 import SettingsModal from '../components/modals/SettingsModal'
 import { combineDateAndTime, addMinutes } from '../utils/routeUtils'
 
