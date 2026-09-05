@@ -254,8 +254,14 @@ export default function SelectedTripView({
           onOpenEdit={onOpenEditRouteItem}
         />
       )}
-      {tripTab === 'Stats' && <PlaceholderView title="Статистика та витрати" icon={<BarChart3 size={40} color="#ba6e51" />} />}
-
+      {tripTab === 'Stats' && (
+        <StatsTab
+          stats={stats}
+          statsLoading={statsLoading}
+          statsView={statsView}
+          setStatsView={setStatsView}
+        />
+      )}
       {tripTab === 'Members' && (
         <MembersTab
           selectedTrip={selectedTrip}

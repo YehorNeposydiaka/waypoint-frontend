@@ -78,6 +78,11 @@ export default function TripListPage() {
   const [routeFormData, setRouteFormData] = useState(getEmptyRouteFormData())
   const [routeSubmitLoading, setRouteSubmitLoading] = useState(false)
 
+// Статистика поїздки — таб "Статистика"
+  const [tripStats, setTripStats] = useState(null)
+  const [tripStatsLoading, setTripStatsLoading] = useState(false)
+  const [statsView, setStatsView] = useState('overview') // 'overview' | 'details'
+
   const [members, setMembers] = useState([])
   const [membersLoading, setMembersLoading] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
@@ -274,6 +279,34 @@ export default function TripListPage() {
     }
   }
 
+  useEffect(() => {
+    if (selectedTrip && tripTab === 'Stats') {
+      fetchTripStats()
+    }
+  }, [selectedTrip, tripTab])
+
+  const fetchTripStats = async () => {
+    if (!selectedTrip) return
+
+    setTripStatsLoading(true)
+
+    try {
+      const res = await api.get(`/api/trips/${selectedTrip.id}/stats`)
+      setTripStats(res.data)
+
+    } catch (err) {
+      console.error(
+        'Помилка завантаження статистики:',
+        err
+      )
+
+      setTripStats(null)
+
+    } finally {
+      setTripStatsLoading(false)
+    }
+  }
+  
   useEffect(() => {
     if (selectedTrip) {
       fetchMembers()
