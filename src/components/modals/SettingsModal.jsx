@@ -20,7 +20,7 @@ export default function SettingsModal({
 
   return (
     <div style={styles.modalOverlay}>
-      <div style={{ ...styles.modalContent, maxWidth: '500px' }}>
+      <div className="modal-content" style={{ ...styles.modalContent, maxWidth: '500px' }}>
         <div style={styles.modalHeader}>
           <h3 style={{ margin: 0, fontSize: '18px' }}>Налаштування профілю</h3>
           <button onClick={onClose} style={styles.closeBtn}><X size={20} /></button>

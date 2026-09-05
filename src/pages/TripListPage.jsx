@@ -1,6 +1,6 @@
 // src/pages/TripListPage.jsx
 import React, { useState, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Menu } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
@@ -14,7 +14,7 @@ import TripsDashboardView from '../components/TripsDashboardView'
 
 import NewTripModal from '../components/modals/TripModal'
 import NewPrepModal from '../components/modals/NewPrepModal'
-import RouteItemModal from '../components/selectedTrip/modals/RouteItemModal'
+import RouteItemModal from '../components/modals/RouteItemModal'
 import SettingsModal from '../components/modals/SettingsModal'
 import { combineDateAndTime, addMinutes } from '../utils/routeUtils'
 
@@ -78,7 +78,7 @@ export default function TripListPage() {
   const [routeFormData, setRouteFormData] = useState(getEmptyRouteFormData())
   const [routeSubmitLoading, setRouteSubmitLoading] = useState(false)
 
-// Статистика поїздки — таб "Статистика"
+  // Статистика поїздки — таб "Статистика"
   const [tripStats, setTripStats] = useState(null)
   const [tripStatsLoading, setTripStatsLoading] = useState(false)
   const [statsView, setStatsView] = useState('overview') // 'overview' | 'details'
@@ -141,6 +141,9 @@ export default function TripListPage() {
   // Стейти для редагування поїздки
   const [editTripLoading, setEditTripLoading] = useState(false)
   const [editTripError, setEditTripError] = useState('')
+
+  // Мобільна навігація: чи відкрита висувна Sidebar-панель
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -279,6 +282,7 @@ export default function TripListPage() {
     }
   }
 
+  // Завантажуємо статистику щоразу, як відкривається таб "Статистика" (без кешування).
   useEffect(() => {
     if (selectedTrip && tripTab === 'Stats') {
       fetchTripStats()
@@ -306,7 +310,7 @@ export default function TripListPage() {
       setTripStatsLoading(false)
     }
   }
-  
+
   useEffect(() => {
     if (selectedTrip) {
       fetchMembers()
@@ -1193,35 +1197,61 @@ export default function TripListPage() {
   })
 
   return (
-    <div style={styles.appLayout}>
-      <Sidebar
-        activeNav={activeNav}
-        setActiveNav={setActiveNav}
-        selectedTrip={selectedTrip}
-        setSelectedTrip={setSelectedTrip}
-        user={user}
-        getInitials={getInitials}
-        onOpenSettings={() => {
-          setFullNameInput(
-            user?.fullName || ''
-          )
+    <div className="app-layout">
+      <div className="mobile-topbar">
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px', display: 'flex' }}
+          aria-label="Відкрити меню"
+        >
+          <Menu size={22} color="#2b2b2b" />
+        </button>
+        <span style={{ fontWeight: '700', fontSize: '16px', color: '#2b2b2b' }}>WayPoint</span>
+        <div style={{ width: '22px' }} />
+      </div>
 
-          setUpdateUserMessage({
-            type: '',
-            text: ''
-          })
-
-          setPasswordMessage({
-            type: '',
-            text: ''
-          })
-
-          setIsSettingsOpen(true)
-        }}
-        onLogout={handleLogout}
+      <div
+        className={`sidebar-overlay ${isMobileSidebarOpen ? 'sidebar-overlay-visible' : ''}`}
+        onClick={() => setIsMobileSidebarOpen(false)}
       />
 
-      <main style={styles.mainContent}>
+      <div className={`sidebar ${isMobileSidebarOpen ? 'sidebar-open' : ''}`}>
+        <Sidebar
+          activeNav={activeNav}
+          setActiveNav={(nav) => {
+            setActiveNav(nav)
+            setIsMobileSidebarOpen(false)
+          }}
+          selectedTrip={selectedTrip}
+          setSelectedTrip={(trip) => {
+            setSelectedTrip(trip)
+            setIsMobileSidebarOpen(false)
+          }}
+          user={user}
+          getInitials={getInitials}
+          onOpenSettings={() => {
+            setFullNameInput(
+              user?.fullName || ''
+            )
+
+            setUpdateUserMessage({
+              type: '',
+              text: ''
+            })
+
+            setPasswordMessage({
+              type: '',
+              text: ''
+            })
+
+            setIsSettingsOpen(true)
+            setIsMobileSidebarOpen(false)
+          }}
+          onLogout={handleLogout}
+        />
+      </div>
+
+      <main className="main-content">
         <Header
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}

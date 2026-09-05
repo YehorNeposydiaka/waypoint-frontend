@@ -107,7 +107,7 @@ export default function StatsTab({ stats, statsLoading, statsView, setStatsView 
 
       {statsView === 'overview' ? (
         <div style={styles.sideCard}>
-          <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="stats-overview-row" style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'center' }}>
             <DonutChart segments={categories} total={total} />
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minWidth: '220px' }}>

@@ -11,13 +11,11 @@ export default function Header({
   joinLoading
 }) {
   return (
-    <header style={styles.topHeader}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={{
+    <header className="top-header" style={styles.topHeader}>
+      <div className="top-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="search-box" style={{
           ...styles.searchBox,
           borderColor: isSearchQueryUuid ? '#ba6e51' : '#e5e5e5',
-          width: isSearchQueryUuid ? '380px' : '300px',
-          transition: 'all 0.2s ease'
         }}>
           <Search size={18} color={isSearchQueryUuid ? '#ba6e51' : '#8e8e8e'} />
           <input 

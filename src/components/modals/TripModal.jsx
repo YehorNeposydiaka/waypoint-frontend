@@ -32,7 +32,7 @@ export default function TripModal({
 
   return (
     <div style={styles.modalOverlay}>
-      <div style={styles.modalContent}>
+      <div className="modal-content" style={styles.modalContent}>
         <div style={styles.modalHeader}>
           <h3 style={{ margin: 0, fontSize: '18px' }}>
             {isEdit ? 'Редагувати подорож' : 'Нова подорож'}

@@ -56,17 +56,17 @@ export default function TripsDashboardView({
 
   return (
     <>
-      <div style={styles.pageHeader}>
+      <div className="page-header">
         <div>
           <h1 style={styles.title}>{activeNav}</h1>
           <p style={styles.subtitle}>{getSubtitle()}</p>
         </div>
-        <button onClick={() => setIsNewTripOpen(true)} style={styles.primaryBtn}>
+        <button className="primary-btn" onClick={() => setIsNewTripOpen(true)} style={styles.primaryBtn}>
           <Plus size={18} /> Нова подорож
         </button>
       </div>
 
-      <div style={styles.dashboardGrid}>
+      <div className="dashboard-grid">
         <div style={styles.leftColumn}>
           {/* Показуємо картку "Наступна подорож" тільки у Поточних або на Головній */}
           {(navLower.includes('поточні') || navLower.includes('головна')) && (
@@ -134,7 +134,7 @@ export default function TripsDashboardView({
             </div>
 
             {filteredTrips.length > 0 ? (
-              <div style={styles.cardsGrid}>
+              <div className="cards-grid">
                 {filteredTrips.map(trip => (
                   <div 
                     key={trip.id} 

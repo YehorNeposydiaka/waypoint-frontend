@@ -1,13 +1,11 @@
 // src/components/selectedTrip/SelectedTripView.jsx
 import React, { useState, useEffect } from 'react'
-import { BarChart3 } from 'lucide-react'
-import PlaceholderView from '../PlaceholderView'
 import TripHeader from './TripHeader'
 import TripHeroCard from './TripHeroCard'
 import PreparationTab from './tabs/PreparationTab'
 import RouteTab from './tabs/RouteTab'
-import MembersTab from './tabs/MemberTab'
 import StatsTab from './tabs/StatsTab'
+import MembersTab from './tabs/MemberTab'
 import ChangeRoleModal from './modals/ChangeRoleModal'
 import AssignMemberModal from './modals/AssignMemberModal'
 import TripModal from '../modals/TripModal'
@@ -198,7 +196,7 @@ export default function SelectedTripView({
       <TripHeroCard selectedTrip={selectedTrip} />
 
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
-        <div style={styles.segmentedControl}>
+        <div className="tab-segmented-wrapper" style={styles.segmentedControl}>
           {[
             { id: 'Preparation', label: 'Підготовка' },
             { id: 'Trip', label: 'Поїздка' },
@@ -216,6 +214,19 @@ export default function SelectedTripView({
               {tab.label}
             </button>
           ))}
+        </div>
+
+        <div className="tab-dropdown-wrapper">
+          <select
+            className="tab-dropdown-select"
+            value={tripTab}
+            onChange={(e) => setTripTab(e.target.value)}
+          >
+            <option value="Preparation">Підготовка</option>
+            <option value="Trip">Поїздка</option>
+            <option value="Stats">Статистика</option>
+            <option value="Members">Учасники</option>
+          </select>
         </div>
       </div>
 
@@ -267,6 +278,7 @@ export default function SelectedTripView({
           setStatsView={setStatsView}
         />
       )}
+
       {tripTab === 'Members' && (
         <MembersTab
           selectedTrip={selectedTrip}

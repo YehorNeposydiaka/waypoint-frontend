@@ -30,7 +30,7 @@ export default function Sidebar({
   ]
 
   return (
-    <aside style={styles.sidebar}>
+    <aside style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px 16px' }}>
       <div>
         <div style={styles.logoContainer}>
           <Compass size={24} color="#2b2b2b" />
