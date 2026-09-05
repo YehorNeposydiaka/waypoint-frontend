@@ -1,7 +1,7 @@
 import React from 'react'
 import { X, Loader2, MapPin, Plane } from 'lucide-react'
-import { styles } from '../../styles/tripListPageStyles'
-import { CHECKPOINT_TYPE_LABELS, TRANSFER_TYPE_LABELS } from '../../utils/routeUtils'
+import { styles } from '../../../styles/tripListPageStyles'
+import { CHECKPOINT_TYPE_LABELS, TRANSFER_TYPE_LABELS } from '../../../utils/routeUtils'
 
 // formData shape (uniform across checkpoint/transfer for simplicity on the frontend):
 // {
