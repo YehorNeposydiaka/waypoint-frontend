@@ -1305,6 +1305,10 @@ export default function TripListPage() {
             onOpenNewRouteItem={openNewRouteItem}
             onDeleteRouteItem={handleDeleteRouteItem}
             onOpenEditRouteItem={openEditRouteItem}
+            stats={tripStats}
+            statsLoading={tripStatsLoading}
+            statsView={statsView}
+            setStatsView={setStatsView}
           />
         ) : loading ? (
           <div style={styles.loaderContainer}>

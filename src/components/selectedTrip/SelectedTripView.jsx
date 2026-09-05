@@ -53,7 +53,11 @@ export default function SelectedTripView({
   setExpandedRouteId,
   onOpenNewRouteItem,
   onDeleteRouteItem,
-  onOpenEditRouteItem
+  onOpenEditRouteItem,
+  stats,
+  statsLoading,
+  statsView,
+  setStatsView
 }) {
   const [targetMember, setTargetMember] = useState(null)
   const [selectedRole, setSelectedRole] = useState('MEMBER')
